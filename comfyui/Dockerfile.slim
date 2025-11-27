@@ -1,0 +1,48 @@
+# ComfyUI Slim for Flux 2.0 FP8
+# Models downloaded on first run (~54GB total)
+# Use with 100GB+ container disk on RunPod
+
+FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV COMFYUI_PATH=/comfyui
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    wget \
+    curl \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone ComfyUI (latest for Flux 2 support)
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git ${COMFYUI_PATH}
+
+WORKDIR ${COMFYUI_PATH}
+
+# Install ComfyUI dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install additional dependencies for handler
+RUN pip install --no-cache-dir \
+    runpod \
+    requests \
+    aiohttp \
+    huggingface_hub
+
+# Create model directories (matching ComfyUI's expected structure)
+RUN mkdir -p ${COMFYUI_PATH}/models/diffusion_models \
+    ${COMFYUI_PATH}/models/text_encoders \
+    ${COMFYUI_PATH}/models/vae \
+    ${COMFYUI_PATH}/output
+
+# Copy handler and workflow files
+COPY handler_slim.py /handler.py
+COPY workflow.json /workflow.json
+
+WORKDIR /
+
+CMD ["python", "-u", "/handler.py"]
+

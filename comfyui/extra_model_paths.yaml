@@ -1,0 +1,11 @@
+# ComfyUI extra model paths configuration for Flux 2.0
+
+comfyui:
+  base_path: /comfyui/models
+  checkpoints: checkpoints/
+  clip: clip/
+  vae: vae/
+  unet: unet/
+  loras: loras/
+  controlnet: controlnet/
+

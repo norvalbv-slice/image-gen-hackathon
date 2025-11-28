@@ -18,7 +18,7 @@
 #   - street_food      (Urban, energetic, food truck vibes)
 #   - garden_fresh     (Organic, farm-to-table, natural)
 
-ENDPOINT_ID="mjiwr7uipx2nbs"
+ENDPOINT_ID="hbvg2b5ucr59mx"
 
 if [ -z "$RUNPOD_API_KEY" ]; then
     echo "Please set RUNPOD_API_KEY environment variable"

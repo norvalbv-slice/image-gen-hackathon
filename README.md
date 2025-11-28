@@ -18,8 +18,8 @@
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   RUNPOD SERVERLESS ENDPOINT                    │
-│  Endpoint ID: mjiwr7uipx2nbs                                    │
-│  Image: benjithegreat/comfyui-flux2:fp8-v12                     │
+│  Endpoint ID: hbvg2b5ucr59mx                                    │
+│  Image: benjithegreat/comfyui-flux2:fp8-v13                     │
 │  GPU: NVIDIA A100 80GB                                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
@@ -106,7 +106,7 @@ Upload an existing menu photo → GPT-5.1 extracts the style → new images matc
 ### Scene-Based Request
 
 ```bash
-curl -X POST "https://api.runpod.ai/v2/mjiwr7uipx2nbs/run" \
+curl -X POST "https://api.runpod.ai/v2/hbvg2b5ucr59mx/run" \
   -H "Authorization: Bearer $RUNPOD_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -122,7 +122,7 @@ curl -X POST "https://api.runpod.ai/v2/mjiwr7uipx2nbs/run" \
 ### Reference Image Request
 
 ```bash
-curl -X POST "https://api.runpod.ai/v2/mjiwr7uipx2nbs/run" \
+curl -X POST "https://api.runpod.ai/v2/hbvg2b5ucr59mx/run" \
   -H "Authorization: Bearer $RUNPOD_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -185,18 +185,18 @@ We use a **slim Docker image** (~2GB) - models download on first run:
 
 ```bash
 # Build
-cd comfyui && docker build -f Dockerfile.slim -t benjithegreat/comfyui-flux2:fp8-v12 .
+cd comfyui && docker build -f Dockerfile.slim -t benjithegreat/comfyui-flux2:fp8-v13 .
 
 # Push
-docker push benjithegreat/comfyui-flux2:fp8-v12
+docker push benjithegreat/comfyui-flux2:fp8-v13
 
 # Update RunPod template (via MCP or dashboard)
 ```
 
 **Current deployment:**
-- Endpoint ID: `mjiwr7uipx2nbs`
+- Endpoint ID: `hbvg2b5ucr59mx`
 - Template ID: `07hps30fle`
-- Docker Image: `benjithegreat/comfyui-flux2:fp8-v12`
+- Docker Image: `benjithegreat/comfyui-flux2:fp8-v13`
 
 ## Important Notes
 

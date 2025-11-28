@@ -23,9 +23,11 @@ from huggingface_hub import hf_hub_download
 # Configuration
 COMFYUI_PATH = os.environ.get("COMFYUI_PATH", "/comfyui")
 WORKFLOW_PATH = "/workflow.json"
+WORKFLOW_IMG2IMG_PATH = "/workflow_img2img.json"
 TEMPLATES_PATH = "/templates.json"
 SCENES_PATH = "/scenes.json"
 OUTPUT_DIR = f"{COMFYUI_PATH}/output"
+INPUT_DIR = f"{COMFYUI_PATH}/input"
 COMFYUI_PORT = 8188
 
 # Remote config URLs (for live editing without Docker rebuild)
@@ -109,6 +111,31 @@ def ensure_models_downloaded():
 def load_workflow():
     with open(WORKFLOW_PATH, "r") as f:
         return json.load(f)
+
+
+def load_workflow_img2img():
+    """Load the img2img workflow for reference-based generation."""
+    try:
+        with open(WORKFLOW_IMG2IMG_PATH, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("img2img workflow not found, using standard workflow")
+        return load_workflow()
+
+
+def save_reference_for_workflow(image_base64: str) -> str:
+    """Save reference image to ComfyUI input folder for img2img workflow."""
+    os.makedirs(INPUT_DIR, exist_ok=True)
+    
+    # Save as reference.png (the workflow expects this filename)
+    ref_path = os.path.join(INPUT_DIR, "reference.png")
+    
+    image_data = base64.b64decode(image_base64)
+    with open(ref_path, "wb") as f:
+        f.write(image_data)
+    
+    print(f"Saved reference image to {ref_path} ({len(image_data)} bytes)")
+    return ref_path
 
 
 def load_templates():
@@ -521,37 +548,50 @@ def handler(event):
         base_seed = job_input.get("seed")
         extracted_scene = None
 
-        # REFERENCE IMAGE MODE: Extract scene from reference using GPT-4V
+        # REFERENCE IMAGE MODE: Extract scene + use img2img for visual consistency
         if reference_image and extract_scene:
-            print("Extracting scene from reference image using GPT-4V...")
+            print("Extracting scene from reference image using GPT-5.1...")
             try:
                 from scene_extractor import (
                     extract_scene_from_image,
                     build_prompt_from_extracted_scene,
                 )
 
+                # Step 1: Extract detailed scene characteristics
                 extracted_scene = extract_scene_from_image(reference_image)
                 print(f"Extracted scene: {extracted_scene.get('name', 'Unknown')}")
+                
+                # Step 2: Save reference image for img2img workflow
+                ref_path = save_reference_for_workflow(reference_image)
+                print(f"Reference saved for img2img: {ref_path}")
+                
+                # Step 3: Load img2img workflow (uses reference as latent starting point)
+                img2img_workflow = load_workflow_img2img()
+                
+                # Get denoise value (higher = more change from reference, lower = more similar)
+                denoise = job_input.get("denoise", 0.6)  # Default 0.6 = 60% new, 40% reference
+                img2img_workflow["10"]["inputs"]["denoise"] = denoise
+                print(f"Using denoise: {denoise} (lower = more similar to reference)")
 
-                # Generate images using extracted scene config
+                # Generate images using extracted scene config + img2img
                 for i in range(num_images):
                     prompt_data = build_prompt_from_extracted_scene(
                         item_name, item_description, extracted_scene, i
                     )
                     positive_prompt = prompt_data["prompt"]
+                    print(f"Built prompt: {positive_prompt[:200]}...")
 
                     seed = base_seed if (i == 0 and base_seed is not None) else None
 
-                    print(
-                        f"Generating variation {i + 1}/{num_images}: {prompt_data['variation']}"
-                    )
+                    print(f"Generating img2img variation {i + 1}/{num_images}")
                     result = generate_single_image(
-                        workflow, positive_prompt, negative_prompt, seed
+                        img2img_workflow, positive_prompt, negative_prompt, seed
                     )
 
-                    result["variation"] = prompt_data["variation"]
+                    result["camera_angle"] = prompt_data.get("camera_angle", "")
                     result["variation_index"] = i
                     result["prompt"] = positive_prompt
+                    result["denoise"] = denoise
                     results.append(result)
 
                 # Build response with extracted scene info
@@ -562,8 +602,9 @@ def handler(event):
                     "item_type": item_type
                     or detect_item_type(item_name, item_description),
                     "num_images": num_images,
+                    "denoise": denoise,
                     "status": "success",
-                    "mode": "reference_extraction",
+                    "mode": "reference_img2img",
                 }
 
                 # Include scene_id if user wants to save it

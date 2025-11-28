@@ -48,17 +48,6 @@
       "title": "CLIP Text Encode (Negative Prompt)"
     }
   },
-  "8": {
-    "inputs": {
-      "width": 512,
-      "height": 512,
-      "batch_size": 1
-    },
-    "class_type": "EmptyFlux2LatentImage",
-    "_meta": {
-      "title": "Empty Flux 2 Latent"
-    }
-  },
   "9": {
     "inputs": {
       "guidance": 3.5,
@@ -69,6 +58,26 @@
       "title": "Flux Guidance"
     }
   },
+  "13": {
+    "inputs": {
+      "image": "reference.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Reference Image"
+    }
+  },
+  "14": {
+    "inputs": {
+      "pixels": ["13", 0],
+      "vae": ["5", 0]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "Encode Reference to Latent"
+    }
+  },
   "10": {
     "inputs": {
       "seed": 42,
@@ -76,15 +85,15 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
-      "denoise": 1,
+      "denoise": 0.6,
       "model": ["3", 0],
       "positive": ["9", 0],
       "negative": ["7", 0],
-      "latent_image": ["8", 0]
+      "latent_image": ["14", 0]
     },
     "class_type": "KSampler",
     "_meta": {
-      "title": "KSampler"
+      "title": "KSampler (img2img - denoise 0.6)"
     }
   },
   "11": {
@@ -99,7 +108,7 @@
   },
   "12": {
     "inputs": {
-      "filename_prefix": "pizza",
+      "filename_prefix": "img2img",
       "images": ["11", 0]
     },
     "class_type": "SaveImage",
@@ -108,3 +117,4 @@
     }
   }
 }
+

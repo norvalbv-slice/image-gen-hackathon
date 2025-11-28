@@ -42,9 +42,10 @@ RUN mkdir -p ${COMFYUI_PATH}/models/diffusion_models \
     ${COMFYUI_PATH}/output \
     ${COMFYUI_PATH}/input
 
-# Copy handler, workflow, templates, scenes, and utility files
+# Copy handler, workflows, templates, scenes, and utility files
 COPY handler_slim.py /handler.py
 COPY workflow.json /workflow.json
+COPY workflow_img2img.json /workflow_img2img.json
 COPY templates.json /templates.json
 COPY scenes.json /scenes.json
 COPY llm_judge.py /llm_judge.py

@@ -23,47 +23,79 @@ except ImportError:
     HAS_ANTHROPIC = False
 
 
-EXTRACTION_PROMPT = """You are an expert food photography analyst. Analyze this food photograph and extract the scene characteristics for recreating similar images.
+EXTRACTION_PROMPT = """You are an expert food photography analyst. Analyze this food photograph and extract EXACT details for recreating this SPECIFIC style in new images.
+
+BE EXTREMELY SPECIFIC - we need to replicate this exact look, not a generic interpretation.
 
 Extract the following details:
 
-1. **name**: Give this style a short descriptive name (e.g., "Warm Italian Trattoria", "Modern Minimalist Cafe")
+1. **name**: Short descriptive name for this specific style
 
-2. **background**: Describe the surface, table, backdrop. Be specific about materials, colors, textures.
-   Example: "rustic dark wooden table with visible grain, blurred brick wall in background"
+2. **background**: EXACT surface description including:
+   - Material type (wood grain direction, marble pattern, concrete texture)
+   - Exact color (whitewashed, weathered gray, dark espresso, light oak)
+   - Condition (distressed, polished, rough, smooth)
+   - Any visible backdrop behind the surface
+   Example: "whitewashed weathered wood planks with visible gray grain, slightly distressed finish"
 
-3. **lighting**: Describe the lighting setup - direction, warmth, shadows, intensity.
-   Example: "warm directional light from upper left, soft shadows, golden hour warmth"
+3. **surface_object**: What is the food placed ON?
+   - Serving board, plate, slate, paper, directly on table?
+   - Material and color of this object
+   Example: "round rustic wooden serving board with dark brown finish and metal handle"
 
-4. **mood**: The atmosphere and feeling conveyed.
-   Example: "cozy, authentic, inviting, family-style"
+4. **props**: ALL visible items in the frame:
+   - Utensils (spatula, fork, knife, pizza cutter)
+   - Garnishes (loose herbs, scattered ingredients)
+   - Napkins, towels, bottles
+   - Position of each item (left side, background, etc.)
+   Example: "wooden pizza spatula/server on left side, scattered fresh oregano leaves"
 
-5. **props**: Other elements in the frame besides the main food item.
-   Example: "white linen napkin, scattered fresh basil leaves, olive oil bottle blurred in background"
+5. **food_state**: Specific state of the food:
+   - Is there a slice cut out? How many?
+   - Is there a cheese pull or lift happening?
+   - Steam visible?
+   - Any toppings falling off edge?
+   Example: "one triangular slice lifted showing cheese stretch, remaining pizza intact"
 
-6. **realism**: Describe texture qualities and authenticity markers that make it look real.
-   Example: "natural food imperfections, authentic cheese melt with uneven texture, slight char on crust edges"
+6. **lighting**: Exact lighting setup:
+   - Direction (from left, right, above, behind)
+   - Color temperature (warm golden, cool white, neutral)
+   - Shadow intensity and direction
+   - Any highlights or rim lighting
+   Example: "dramatic side lighting from left, warm golden tone, deep shadows on right, highlight on crust edge"
 
-7. **composition**: Camera angle and framing style.
-   Example: "45-degree angle from corner, shallow depth of field, subject fills 60% of frame"
+7. **camera_angle**: Exact camera position:
+   - Angle in degrees (overhead 90°, 45°, 30°, eye-level 0°)
+   - Perspective (straight-on, from corner, from side)
+   - Distance (close-up, medium, full scene)
+   Example: "approximately 30-degree angle from front-left corner, medium distance showing full pizza plus props"
 
-Return your analysis as valid JSON in this exact format:
+8. **depth_of_field**: Focus characteristics:
+   - What's in sharp focus?
+   - What's blurred?
+   - Bokeh quality in background
+   Example: "sharp focus on front half of pizza, slight blur on back edge, soft bokeh on background"
+
+9. **color_palette**: Dominant colors in the scene:
+   - List 3-5 main colors
+   Example: "warm browns, cream whites, red sauce tones, green herb accents"
+
+Return your analysis as valid JSON:
 {
-  "name": "Style Name Here",
-  "background": "detailed background description",
-  "lighting": "lighting description",
-  "mood": "mood and atmosphere",
-  "props": "props and additional elements",
-  "realism": "authenticity markers and texture qualities",
-  "variations": [
-    {"angle": "primary angle from image", "focus": "focus point", "depth": "depth of field"},
-    {"angle": "alternative angle suggestion", "focus": "different focus", "depth": "depth variation"},
-    {"angle": "third angle option", "focus": "another focus point", "depth": "depth style"},
-    {"angle": "fourth angle option", "focus": "macro detail", "depth": "ultra shallow"}
-  ]
+  "name": "Style Name",
+  "background": "exact background description",
+  "surface_object": "what food sits on",
+  "props": "all visible items with positions",
+  "food_state": "slice cut, cheese pull, etc.",
+  "lighting": "exact lighting setup",
+  "camera_angle": "exact angle and perspective",
+  "depth_of_field": "focus characteristics",
+  "color_palette": "dominant colors",
+  "mood": "overall atmosphere",
+  "realism": "texture and authenticity details"
 }
 
-The variations array should include the angle from the reference image first, then suggest 3 alternative angles that would work well with this scene style."""
+BE SPECIFIC - generic descriptions like "wooden table" are not useful. We need "whitewashed weathered pine planks" level of detail."""
 
 
 def extract_scene_openai(image_base64: str, api_key: Optional[str] = None) -> Dict:
@@ -213,7 +245,7 @@ def build_prompt_from_extracted_scene(
     variation_index: int = 0,
 ) -> Dict:
     """
-    Build a generation prompt using an extracted scene config.
+    Build a DETAILED generation prompt using extracted scene config.
 
     Args:
         item_name: Name of the food item to generate
@@ -227,39 +259,52 @@ def build_prompt_from_extracted_scene(
             "variation": {...}
         }
     """
-    variations = extracted_scene.get("variations", [])
-
-    # Get the specific variation (wrap around if index exceeds available)
-    if variations:
-        variation = variations[variation_index % len(variations)]
-    else:
-        variation = {"angle": "overhead", "focus": "centered", "depth": "sharp focus"}
-
-    # Build the prompt with extracted scene elements + variation
+    # Build comprehensive prompt with ALL extracted details
     prompt_parts = [
         # Subject first (Flux 2 best practice)
         f"{item_name} with {item_description}",
-        # Realism descriptors
-        extracted_scene.get("realism", "authentic food texture, natural imperfections"),
-        # Scene elements
+        
+        # Food state (slice cut, cheese pull, etc.) - IMPORTANT for matching reference
+        extracted_scene.get("food_state", ""),
+        
+        # Surface/serving object
+        f"on {extracted_scene.get('surface_object', 'rustic wooden board')}" if extracted_scene.get("surface_object") else "",
+        
+        # Background - exact description
         extracted_scene.get("background", ""),
-        extracted_scene.get("lighting", ""),
-        extracted_scene.get("mood", ""),
+        
+        # Props with positions - makes scene match
         extracted_scene.get("props", ""),
-        # Variation elements
-        variation.get("angle", ""),
-        variation.get("focus", ""),
-        variation.get("depth", ""),
+        
+        # Lighting setup - critical for matching style
+        extracted_scene.get("lighting", ""),
+        
+        # Camera angle and perspective
+        extracted_scene.get("camera_angle", ""),
+        
+        # Depth of field
+        extracted_scene.get("depth_of_field", ""),
+        
+        # Color palette influence
+        f"color palette of {extracted_scene.get('color_palette', '')}" if extracted_scene.get("color_palette") else "",
+        
+        # Mood/atmosphere
+        extracted_scene.get("mood", ""),
+        
+        # Realism/texture details
+        extracted_scene.get("realism", "authentic food texture, natural imperfections"),
+        
         # Photography quality
-        "editorial food photography, shot on Canon 5D Mark IV, high resolution, appetizing presentation",
+        "professional editorial food photography, high resolution, appetizing presentation",
     ]
 
     # Filter empty parts and join
-    full_prompt = ", ".join(part for part in prompt_parts if part)
+    full_prompt = ", ".join(part for part in prompt_parts if part and part.strip())
 
     return {
         "prompt": full_prompt,
         "scene_name": extracted_scene.get("name", "Custom Style"),
         "variation_index": variation_index,
-        "variation": variation,
+        "camera_angle": extracted_scene.get("camera_angle", ""),
+        "extracted_scene": extracted_scene,
     }

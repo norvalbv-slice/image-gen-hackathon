@@ -74,7 +74,7 @@ def judge_images_openai(
         )
 
     response = client.chat.completions.create(
-        model="gpt-4o",  # GPT-4o has vision capabilities
+        model="gpt-5-mini",  # GPT-4o has vision capabilities
         messages=[{"role": "user", "content": content}],
         max_tokens=1000,
         temperature=0.3,

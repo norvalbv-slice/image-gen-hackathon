@@ -4,7 +4,8 @@ Features:
 - Multi-image generation (num_images param)
 - Menu item templates (pizza, pasta, salad, dessert, etc.)
 - LLM as judge for auto-selecting best image
-- Reference image support (coming soon)
+- Reference image scene extraction (GPT-4V analyzes reference to create scene)
+- Reference image visual conditioning (Flux uses reference for consistency)
 """
 
 import runpod
@@ -488,9 +489,15 @@ def handler(event):
         )  # Clamp 1-4 (max variations per scene)
         auto_select = job_input.get("auto_select", False)
 
-        # NEW: Scene-based generation for consistent shop themes with varied compositions
+        # Scene-based generation for consistent shop themes with varied compositions
         scene = job_input.get("scene")  # e.g., "rustic_italian", "modern_minimal", etc.
 
+        # Reference image scene extraction (GPT-4V analyzes image to create scene config)
+        reference_image = job_input.get("reference_image")  # Single base64 image
+        extract_scene = job_input.get("extract_scene", False)  # Analyze with GPT-4V
+        save_scene_as = job_input.get("save_scene_as")  # Optional: name for extracted scene
+
+        # Legacy support for multiple reference images (not actively used)
         reference_images = job_input.get("reference_images", [])
 
         # Handle reference images (future: integrate with workflow)
@@ -510,9 +517,63 @@ def handler(event):
 
         results = []
         base_seed = job_input.get("seed")
+        extracted_scene = None
+
+        # REFERENCE IMAGE MODE: Extract scene from reference using GPT-4V
+        if reference_image and extract_scene:
+            print("Extracting scene from reference image using GPT-4V...")
+            try:
+                from scene_extractor import extract_scene_from_image, build_prompt_from_extracted_scene
+                
+                extracted_scene = extract_scene_from_image(reference_image)
+                print(f"Extracted scene: {extracted_scene.get('name', 'Unknown')}")
+                
+                # Generate images using extracted scene config
+                for i in range(num_images):
+                    prompt_data = build_prompt_from_extracted_scene(
+                        item_name, item_description, extracted_scene, i
+                    )
+                    positive_prompt = prompt_data["prompt"]
+                    
+                    seed = base_seed if (i == 0 and base_seed is not None) else None
+                    
+                    print(f"Generating variation {i + 1}/{num_images}: {prompt_data['variation']}")
+                    result = generate_single_image(
+                        workflow, positive_prompt, negative_prompt, seed
+                    )
+                    
+                    result["variation"] = prompt_data["variation"]
+                    result["variation_index"] = i
+                    result["prompt"] = positive_prompt
+                    results.append(result)
+                
+                # Build response with extracted scene info
+                response = {
+                    "images": results,
+                    "extracted_scene": extracted_scene,
+                    "scene_name": extracted_scene.get("name", "Custom Style"),
+                    "item_type": item_type or detect_item_type(item_name, item_description),
+                    "num_images": num_images,
+                    "status": "success",
+                    "mode": "reference_extraction",
+                }
+                
+                # Include scene_id if user wants to save it
+                if save_scene_as:
+                    response["scene_id"] = save_scene_as
+                    response["save_scene_as"] = save_scene_as
+                    print(f"Scene can be saved as: {save_scene_as}")
+                
+            except Exception as e:
+                print(f"Scene extraction failed: {e}")
+                import traceback
+                traceback.print_exc()
+                # Fall back to default scene
+                scene = "rustic_italian"
+                extracted_scene = None
 
         # SCENE-BASED GENERATION: Different prompts for each image (meaningful variety)
-        if scene:
+        if not extracted_scene and scene:
             print(f"Using scene: {scene} with {num_images} variations")
 
             for i in range(num_images):

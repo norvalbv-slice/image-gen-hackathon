@@ -117,7 +117,7 @@ def load_templates():
         remote_data = fetch_remote_config(TEMPLATES_URL, "templates")
         if remote_data:
             return remote_data
-    
+
     # Fall back to local file
     try:
         with open(TEMPLATES_PATH, "r") as f:
@@ -130,13 +130,13 @@ def load_templates():
 def fetch_remote_config(url, cache_key):
     """Fetch config from URL with caching."""
     now = time.time()
-    
+
     # Check cache
     if cache_key in CONFIG_CACHE:
         cached_data, cached_time = CONFIG_CACHE[cache_key]
         if now - cached_time < CONFIG_CACHE_TTL:
             return cached_data
-    
+
     try:
         print(f"Fetching config from {url}")
         response = requests.get(url, timeout=10)
@@ -160,7 +160,7 @@ def load_scenes():
         remote_data = fetch_remote_config(SCENES_URL, "scenes")
         if remote_data:
             return remote_data
-    
+
     # Fall back to local file
     try:
         with open(SCENES_PATH, "r") as f:
@@ -462,12 +462,12 @@ def handler(event):
         # This lets developers test their own branches without changing the endpoint
         request_scenes_url = job_input.get("scenes_url")
         request_templates_url = job_input.get("templates_url")
-        
+
         if request_scenes_url:
             print(f"DEV MODE: Using custom scenes_url: {request_scenes_url}")
             SCENES_URL = request_scenes_url
             CONFIG_CACHE.pop("scenes", None)  # Clear cache to force reload
-        
+
         if request_templates_url:
             print(f"DEV MODE: Using custom templates_url: {request_templates_url}")
             TEMPLATES_URL = request_templates_url

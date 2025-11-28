@@ -90,7 +90,61 @@ We use a **slim Docker image** (~2GB) instead of bundling the 54GB models:
 - ✅ Easy to update code without re-uploading 54GB
 - ✅ Models downloaded from Hugging Face (fast CDN)
 
-## 🔄 Development & Deployment Flow
+## 🔧 DEV MODE - Live Prompt Editing (No Docker Rebuild!)
+
+**For hackathon experimentation**, team members can edit prompts/scenes via GitHub and test immediately:
+
+### How It Works
+
+1. **Create your own branch** with modified `scenes.json` or `templates.json`
+2. **Get the raw GitHub URL** for your file
+3. **Pass the URL to the API** - configs load from your branch!
+
+### Example: Testing Your Own Scenes
+
+```bash
+# 1. Create a branch and edit scenes.json
+git checkout -b my-experiment
+# Edit comfyui/scenes.json
+git add . && git commit -m "test: my scene changes"
+git push origin my-experiment
+
+# 2. Get the raw URL (replace with your actual branch)
+# https://raw.githubusercontent.com/norvalbv-slice/image-gen-hackathon/my-experiment/comfyui/scenes.json
+
+# 3. Test with your custom scenes
+export SCENES_URL="https://raw.githubusercontent.com/norvalbv-slice/image-gen-hackathon/my-experiment/comfyui/scenes.json"
+./test_fp8_endpoint.sh rustic_italian 4
+
+# The endpoint will fetch YOUR scenes.json instead of the baked-in one!
+```
+
+### Or Pass URL Directly in API Request
+
+```bash
+curl -X POST "https://api.runpod.ai/v2/mjiwr7uipx2nbs/run" \
+  -H "Authorization: Bearer $RUNPOD_API_KEY" \
+  -d '{
+    "input": {
+      "scenes_url": "https://raw.githubusercontent.com/YOUR_BRANCH/comfyui/scenes.json",
+      "item_name": "pepperoni pizza",
+      "scene": "rustic_italian",
+      "num_images": 4
+    }
+  }'
+```
+
+**Benefits:**
+- ✅ No Docker rebuild needed
+- ✅ Each dev can test their own branch
+- ✅ Changes visible in ~60 seconds (cache TTL)
+- ✅ Falls back to baked-in config if URL fails
+
+---
+
+## 🔄 Full Deployment Flow (Code Changes)
+
+For changes to `handler_slim.py` or `workflow.json`, you need to rebuild Docker:
 
 ### Making Changes
 

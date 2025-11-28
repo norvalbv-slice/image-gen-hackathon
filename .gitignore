@@ -1,0 +1,27 @@
+# Cursor IDE
+.cursor/
+
+# Documentation (local research)
+docs/
+
+# Generated images
+*.png
+*.jpg
+*.jpeg
+
+# Environment
+.env
+.env.local
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+

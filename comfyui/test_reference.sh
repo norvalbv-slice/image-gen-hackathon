@@ -118,15 +118,18 @@ while [ $POLL_COUNT -lt $MAX_POLLS ]; do
         echo "🎨 Scene Characteristics:"
         echo $OUTPUT | jq -r '.extracted_scene | "   Background: \(.background // "N/A")\n   Lighting: \(.lighting // "N/A")\n   Mood: \(.mood // "N/A")\n   Props: \(.props // "N/A")"'
         
-        # Save generated images
+        # Save generated images (optimized: single jq parse per image)
         echo ""
         echo "💾 Saving generated images..."
         for i in $(seq 0 $((NUM_GENERATED - 1))); do
-            IMAGE_B64=$(echo $OUTPUT | jq -r ".images[$i].image_base64")
-            SEED=$(echo $OUTPUT | jq -r ".images[$i].seed")
-            VARIATION=$(echo $OUTPUT | jq -r ".images[$i].variation.angle // \"variation_$i\"" | tr ' ' '_')
+            # Extract all fields at once to avoid re-parsing 4MB JSON multiple times
+            IMAGE_DATA=$(echo $OUTPUT | jq -r ".images[$i] | \"\(.image_base64 // \"\")|\(.seed // \"unknown\")|\(.variation.angle // \"variation_$i\")\"")
             
-            if [ "$IMAGE_B64" != "null" ] && [ -n "$IMAGE_B64" ]; then
+            IMAGE_B64=$(echo "$IMAGE_DATA" | cut -d'|' -f1)
+            SEED=$(echo "$IMAGE_DATA" | cut -d'|' -f2)
+            VARIATION=$(echo "$IMAGE_DATA" | cut -d'|' -f3 | tr ' ' '_')
+            
+            if [ "$IMAGE_B64" != "null" ] && [ -n "$IMAGE_B64" ] && [ "$IMAGE_B64" != "" ]; then
                 FILENAME="ref_extracted_${i}_${VARIATION}_seed${SEED}.png"
                 echo $IMAGE_B64 | base64 -d > $FILENAME
                 echo "   [$((i+1))] Saved: $FILENAME"

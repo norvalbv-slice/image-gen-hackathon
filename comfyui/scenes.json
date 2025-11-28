@@ -88,6 +88,37 @@
       {"angle": "close-up on fresh organic toppings", "focus": "organic ingredient quality and natural textures", "depth": "ingredient hero shot"},
       {"angle": "wide rustic harvest spread", "focus": "abundance of fresh produce around pizza", "depth": "harvest table composition"}
     ]
+  },
+  "industrial_craft": {
+    "name": "Industrial Craft",
+    "description": "Hand-crafted artisanal feel with urban workshop aesthetic",
+    "background": "raw concrete slab with subtle texture variations and light dusting of flour",
+    "lighting": "cool directional daylight softened by industrial window panes",
+    "mood": "refined urban craftsmanship with functional simplicity",
+    "props": "well-used metal pizza peel, scattered semolina grains, reclaimed metal accents",
+    "realism": "authentic handmade textures, irregular dough shape, natural cheese blistering, matte ingredient finish with organic imperfections",
+    "variations": [
+      {
+        "angle": "top-down workshop flat lay",
+        "focus": "full pizza with natural irregular edges",
+        "depth": "sharp consistent focus"
+      },
+      {
+        "angle": "angled 35-degree prep-table view",
+        "focus": "pizza on metal peel mid-transfer",
+        "depth": "shallow depth with subtle workshop blur"
+      },
+      {
+        "angle": "low industrial eye-level",
+        "focus": "crust edge highlighting blistering and char",
+        "depth": "strong subject isolation"
+      },
+      {
+        "angle": "tight macro texture shot",
+        "focus": "cheese blister patterns and ingredient grain",
+        "depth": "extremely shallow macro depth"
+      }
+    ]
   }
 }
 

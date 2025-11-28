@@ -28,3 +28,4 @@ echo "Image: ${REMOTE_IMAGE}"
 echo ""
 echo "Use this image name when creating the RunPod template."
 
+

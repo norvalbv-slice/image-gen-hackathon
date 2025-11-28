@@ -549,6 +549,19 @@ def handler(event):
             "OPENAI_API_KEY"
         )
 
+        # DEBUG: Log all incoming parameters
+        print("=" * 60)
+        print("=== INCOMING PARAMETERS ===")
+        print(f"  item_name: {item_name}")
+        print(f"  item_description: {item_description[:50] if item_description else 'None'}...")
+        print(f"  num_images: {num_images}")
+        print(f"  scene: {scene}")
+        print(f"  reference_image: {'Yes (' + str(len(reference_image)) + ' chars)' if reference_image else 'None'}")
+        print(f"  extract_scene: {extract_scene}")
+        print(f"  openai_api_key: {'Set (' + openai_api_key[:10] + '...)' if openai_api_key else 'NOT SET'}")
+        print(f"  save_scene_as: {save_scene_as}")
+        print("=" * 60)
+
         # Legacy support for multiple reference images (not actively used)
         reference_images = job_input.get("reference_images", [])
 
@@ -570,6 +583,11 @@ def handler(event):
         results = []
         base_seed = job_input.get("seed")
         extracted_scene = None
+
+        # DEBUG: Check condition values
+        print(f"[CONDITION CHECK] reference_image truthy: {bool(reference_image)}")
+        print(f"[CONDITION CHECK] extract_scene truthy: {bool(extract_scene)}")
+        print(f"[CONDITION CHECK] Will enter reference mode: {bool(reference_image and extract_scene)}")
 
         # REFERENCE IMAGE MODE: Extract scene + use img2img for visual consistency
         if reference_image and extract_scene:
@@ -685,6 +703,11 @@ def handler(event):
                     response["scene_id"] = save_scene_as
                     response["save_scene_as"] = save_scene_as
                     print(f"[SCENE SAVED AS]: {save_scene_as}")
+
+                # Add available scenes and return early to prevent legacy mode from overwriting
+                response["available_scenes"] = get_available_scenes()
+                print(f"Generated {num_images} image(s) successfully via reference mode")
+                return response
 
             except Exception as e:
                 print(f"Scene extraction failed: {e}")

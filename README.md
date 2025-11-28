@@ -46,7 +46,7 @@ comfyui/
 ├── scenes.json           # 6 pre-defined scenes with 4 variations each
 ├── templates.json        # Food category prompt templates
 ├── scene_extractor.py    # GPT-5.1 reference image analysis
-├── llm_judge.py          # GPT-4V/Claude for auto-selecting best image
+├── llm_judge.py          # GPT-5.1-mini/Claude for auto-selecting best image
 ├── Dockerfile.slim       # Slim Docker (~2GB, models download at runtime)
 ├── test_fp8_endpoint.sh  # Test scene-based generation
 └── test_reference.sh     # Test reference image mode
@@ -61,6 +61,21 @@ cd comfyui
 export RUNPOD_API_KEY=your_runpod_key
 export OPENAI_API_KEY=your_openai_key  # Only needed for reference image mode
 ```
+
+## Why Docker Slim
+
+We use a **slim Docker image** (~2GB) instead of bundling the 54GB models:
+
+| Approach | Image Size | Cold Start | Subsequent Runs |
+|----------|------------|------------|-----------------|
+| Fat image (models baked in) | ~56GB | 5-10 min (pull) | Fast |
+| **Slim image (our approach)** | ~2GB | 5-10 min (download models) | Fast (FlashBoot cached) |
+
+**Benefits:**
+- Much faster Docker push/pull cycles during development
+- RunPod's FlashBoot caches the downloaded models
+- Easy to update code without re-uploading 54GB
+- Models downloaded from Hugging Face (fast CDN)
 
 ### Mode 1: Scene-Based Generation
 
@@ -85,6 +100,12 @@ Use pre-defined scenes (no OpenAI key required):
 | `premium_upscale` | Dark slate, dramatic lighting | Fine dining |
 | `street_food` | Urban, energetic, food truck vibes | Casual/fast-casual |
 | `garden_fresh` | Natural light, organic, farm-to-table | Health-focused |
+
+Each scene generates **4 variations** with different angles:
+- Overhead flat lay
+- 45-degree angle
+- Eye-level shot
+- Macro close-up
 
 ### Mode 2: Reference Image (Match Existing Style)
 
@@ -207,20 +228,77 @@ docker push benjithegreat/comfyui-flux2:fp8-v13
 
 ### Costs
 - A100 80GB: ~$1.40/hour
-- Workers auto-scale down after idle
+- Workers auto-scale down after 10 seconds idle
 - Keep `workersMin: 0` to avoid idle costs
 
 ### Dev Mode (Live Prompt Editing)
 
-Edit `scenes.json` or `templates.json` on a GitHub branch and test without Docker rebuild:
+1. **Create your own branch** with modified `scenes.json` or `templates.json`
+2. **Get the raw GitHub URL** for your file
+3. **Pass the URL to the API** - configs load from your branch
+
+### Example: Testing Your Own Scenes
 
 ```bash
 export SCENES_URL="https://raw.githubusercontent.com/your-branch/comfyui/scenes.json"
 ./test_fp8_endpoint.sh rustic_italian 4
 ```
 
+Or: 
+
+# 1. Create a branch and edit scenes.json
+git checkout -b my-experiment
+# Edit comfyui/scenes.json
+git add . && git commit -m "test: my scene changes"
+git push origin my-experiment
+
+# 2. Get the raw URL (replace with your actual branch)
+# https://raw.githubusercontent.com/norvalbv-slice/image-gen-hackathon/my-experiment/comfyui/scenes.json
+
+# 3. Test with your custom scenes
+export SCENES_URL="https://raw.githubusercontent.com/norvalbv-slice/image-gen-hackathon/my-experiment/comfyui/scenes.json"
+./test_fp8_endpoint.sh rustic_italian 4
+
+# The endpoint will fetch your scenes.json instead of the baked-in one
+
+```json
+curl -X POST "https://api.runpod.ai/v2/hbvg2b5ucr59mx/run" \
+  -H "Authorization: Bearer $RUNPOD_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "item_name": "pepperoni pizza",
+      "scenes_url": "https://raw.githubusercontent.com/YOUR_BRANCH/comfyui/scenes.json",
+      "item_description": "pepperoni, mozzarella, fresh basil",
+      "num_images": 4
+    }
+  }'
+```
+
+## LLM as Judge
+
+When `auto_select: true`, we send all generated images to GPT-4V/Claude to pick the best one:
+
+```python
+# In handler_slim.py
+if auto_select and num_images > 1:
+    judge_result = judge_images(images_b64, item_name)
+    # Returns: { best_index: 2, reasoning: "..." }
+```
+
+**How it works:**
+1. All 4 variations sent to vision LLM
+2. LLM evaluates: appetizing appeal, realism, composition, lighting
+3. Returns best image index with reasoning
+
+**Cost:** ~$0.01-0.05 per evaluation
+
+**For hackathon demo:** Better to show all 4 and let owner choose (more impressive UX).
+
 ## Related Resources
 
 - **Epic:** [sc-640877](https://app.shortcut.com/slicernd/epic/640877)
 - **Slack:** `#proj-temp-ai-image-gen`
 - **ComfyUI Docs:** https://docs.comfy.org
+- **Flux 2.0 Model:** https://huggingface.co/black-forest-labs/FLUX.2-dev
+

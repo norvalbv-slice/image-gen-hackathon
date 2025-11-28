@@ -132,17 +132,20 @@ while [ $POLL_COUNT -lt $MAX_POLLS ]; do
         echo "   Available scenes: $AVAILABLE"
         echo ""
         
-        # Save all images with variation info
+        # Save all images with variation info (optimized: single jq parse per image)
         for i in $(seq 0 $((NUM_GENERATED - 1))); do
-            # Try new format first (.images[i].image_base64)
-            IMAGE_B64=$(echo $OUTPUT | jq -r ".images[$i].image_base64 // empty")
-            SEED=$(echo $OUTPUT | jq -r ".images[$i].seed // empty")
-            ANGLE=$(echo $OUTPUT | jq -r ".images[$i].variation.angle // \"unknown\"")
+            # Extract all fields at once to avoid re-parsing 4MB JSON multiple times
+            IMAGE_DATA=$(echo $OUTPUT | jq -r ".images[$i] | \"\(.image_base64 // \"\")|\(.seed // \"unknown\")|\(.variation.angle // \"unknown\")\"")
+            
+            IMAGE_B64=$(echo "$IMAGE_DATA" | cut -d'|' -f1)
+            SEED=$(echo "$IMAGE_DATA" | cut -d'|' -f2)
+            ANGLE=$(echo "$IMAGE_DATA" | cut -d'|' -f3)
             
             # Fallback to old format (.image_base64 at root)
             if [ -z "$IMAGE_B64" ] && [ "$i" -eq 0 ]; then
-                IMAGE_B64=$(echo $OUTPUT | jq -r ".image_base64 // empty")
-                SEED=$(echo $OUTPUT | jq -r ".seed // \"unknown\"")
+                IMAGE_DATA=$(echo $OUTPUT | jq -r "\"\(.image_base64 // \"\")|\(.seed // \"unknown\")\"")
+                IMAGE_B64=$(echo "$IMAGE_DATA" | cut -d'|' -f1)
+                SEED=$(echo "$IMAGE_DATA" | cut -d'|' -f2)
                 ANGLE="default"
             fi
             

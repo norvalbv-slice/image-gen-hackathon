@@ -1,16 +1,67 @@
 #!/bin/bash
-# Test the ComfyUI Flux 2.0 FP8 Pizza Generator endpoint
-# Usage: RUNPOD_API_KEY=your_key ./test_fp8_endpoint.sh
+# Test the ComfyUI Flux 2.0 FP8 Food Generator endpoint
+# Now with SCENE-BASED generation for meaningful variety!
+#
+# Usage: 
+#   RUNPOD_API_KEY=your_key ./test_fp8_endpoint.sh [scene] [num_images]
+#
+# Examples:
+#   ./test_fp8_endpoint.sh                     # rustic_italian, 4 images
+#   ./test_fp8_endpoint.sh modern_minimal      # modern_minimal, 4 images  
+#   ./test_fp8_endpoint.sh premium_upscale 2   # premium_upscale, 2 images
+#
+# Available scenes:
+#   - rustic_italian   (Traditional pizzeria, warm, inviting)
+#   - modern_minimal   (Clean, Instagram-worthy, white marble)
+#   - cozy_homestyle   (Checkered tablecloth, family-style)
+#   - premium_upscale  (Dark slate, dramatic lighting, fine dining)
+#   - street_food      (Urban, energetic, food truck vibes)
+#   - garden_fresh     (Organic, farm-to-table, natural)
 
-ENDPOINT_ID="mjiwr7uipx2nbs"  # A100-only endpoint (faster!)
+ENDPOINT_ID="mjiwr7uipx2nbs"
 
 if [ -z "$RUNPOD_API_KEY" ]; then
     echo "Please set RUNPOD_API_KEY environment variable"
-    echo "Usage: RUNPOD_API_KEY=your_key ./test_fp8_endpoint.sh"
+    echo ""
+    echo "Usage: RUNPOD_API_KEY=your_key ./test_fp8_endpoint.sh [scene] [num_images]"
+    echo ""
+    echo "Examples:"
+    echo "  ./test_fp8_endpoint.sh rustic_italian 4"
+    echo "  ./test_fp8_endpoint.sh modern_minimal 2"
+    echo ""
+    echo "Available scenes:"
+    echo "  rustic_italian, modern_minimal, cozy_homestyle,"
+    echo "  premium_upscale, street_food, garden_fresh"
     exit 1
 fi
 
-echo "🍕 Submitting pizza generation job to Flux 2.0 FP8 endpoint..."
+# Parse arguments - scene first, num_images second
+SCENE=${1:-rustic_italian}
+NUM_IMAGES=${2:-4}
+
+# Validate scene is not a number (common mistake)
+if [[ "$SCENE" =~ ^[0-9]+$ ]]; then
+    echo "⚠️  ERROR: First argument should be a SCENE name, not a number!"
+    echo ""
+    echo "Usage: ./test_fp8_endpoint.sh [scene] [num_images]"
+    echo "Example: ./test_fp8_endpoint.sh rustic_italian 4"
+    echo ""
+    echo "Available scenes: rustic_italian, modern_minimal, cozy_homestyle,"
+    echo "                  premium_upscale, street_food, garden_fresh"
+    exit 1
+fi
+
+# Validate num_images is a number
+if ! [[ "$NUM_IMAGES" =~ ^[0-9]+$ ]]; then
+    echo "⚠️  ERROR: Second argument should be a NUMBER of images (1-4)!"
+    echo ""
+    echo "Usage: ./test_fp8_endpoint.sh [scene] [num_images]"
+    echo "Example: ./test_fp8_endpoint.sh rustic_italian 4"
+    exit 1
+fi
+
+echo "🍕 Generating ${NUM_IMAGES} pizza images with scene: ${SCENE}"
+echo "   Each image will have a DIFFERENT composition/angle!"
 echo "⚠️  First run downloads ~54GB of models - expect 5-10 min cold start"
 echo ""
 
@@ -22,7 +73,9 @@ RESPONSE=$(curl -s -X POST \
   -d '{
     "input": {
       "item_name": "pepperoni pizza",
-      "item_description": "pepperoni slices, mozzarella cheese, marinara sauce"
+      "item_description": "pepperoni slices, mozzarella cheese, marinara sauce, fresh basil",
+      "scene": "'"${SCENE}"'",
+      "num_images": '"${NUM_IMAGES}"'
     }
   }')
 
@@ -40,61 +93,73 @@ if [ "$JOB_ID" == "null" ] || [ -z "$JOB_ID" ]; then
 fi
 
 # Poll for completion
-echo "Polling for completion (this may take 5-10 minutes on first run)..."
-while true; do
-    RESULT=$(curl -s \
+echo "Polling for completion..."
+POLL_COUNT=0
+MAX_POLLS=120  # 10 minutes max
+
+while [ $POLL_COUNT -lt $MAX_POLLS ]; do
+    RESULT=$(curl -s -X GET \
       "https://api.runpod.ai/v2/${ENDPOINT_ID}/status/${JOB_ID}" \
       -H "Authorization: Bearer ${RUNPOD_API_KEY}")
     
     STATUS=$(echo $RESULT | jq -r '.status')
     
-    case $STATUS in
-        "COMPLETED")
-            echo ""
-            echo "✅ Job completed!"
+    if [ "$STATUS" == "COMPLETED" ]; then
+        echo ""
+        echo "✅ Job completed!"
+        
+        # Extract response
+        OUTPUT=$(echo $RESULT | jq -r '.output')
+        NUM_GENERATED=$(echo $OUTPUT | jq -r '.num_images // 1')
+        SCENE_NAME=$(echo $OUTPUT | jq -r '.scene_name // "unknown"')
+        AVAILABLE=$(echo $OUTPUT | jq -r '.available_scenes | join(", ") // "N/A"')
+        
+        echo "   Scene: $SCENE_NAME"
+        echo "   Images generated: $NUM_GENERATED"
+        echo "   Available scenes: $AVAILABLE"
+        echo ""
+        
+        # Save all images with variation info
+        for i in $(seq 0 $((NUM_GENERATED - 1))); do
+            # Try new format first (.images[i].image_base64)
+            IMAGE_B64=$(echo $OUTPUT | jq -r ".images[$i].image_base64 // empty")
+            SEED=$(echo $OUTPUT | jq -r ".images[$i].seed // empty")
+            ANGLE=$(echo $OUTPUT | jq -r ".images[$i].variation.angle // \"unknown\"")
             
-            # Check for error in output
-            ERROR=$(echo $RESULT | jq -r '.output.error // empty')
-            if [ -n "$ERROR" ]; then
-                echo "❌ Generation failed: $ERROR"
-                exit 1
+            # Fallback to old format (.image_base64 at root)
+            if [ -z "$IMAGE_B64" ] && [ "$i" -eq 0 ]; then
+                IMAGE_B64=$(echo $OUTPUT | jq -r ".image_base64 // empty")
+                SEED=$(echo $OUTPUT | jq -r ".seed // \"unknown\"")
+                ANGLE="default"
             fi
             
-            # Save the image
-            IMAGE_B64=$(echo $RESULT | jq -r '.output.image_base64')
-            if [ "$IMAGE_B64" != "null" ] && [ -n "$IMAGE_B64" ]; then
-                echo "$IMAGE_B64" | base64 -d > pizza_fp8_output.png
-                echo "🖼️  Image saved to pizza_fp8_output.png"
-                
-                SEED=$(echo $RESULT | jq -r '.output.seed')
-                echo "🎲 Seed used: $SEED"
-                
-                # Open the image on macOS
-                if [ "$(uname)" == "Darwin" ]; then
-                    open pizza_fp8_output.png
-                fi
-            else
-                echo "⚠️  No image in response"
-                echo "Full output: $(echo $RESULT | jq '.output')"
+            if [ -n "$IMAGE_B64" ]; then
+                # Clean filename from angle description
+                ANGLE_CLEAN=$(echo "$ANGLE" | tr ' ' '_' | tr -cd '[:alnum:]_-')
+                FILENAME="${SCENE}_${i}_${ANGLE_CLEAN}_seed${SEED}.png"
+                echo $IMAGE_B64 | base64 -d > $FILENAME
+                echo "   [$((i+1))] Saved: $FILENAME"
+                echo "       Angle: $ANGLE"
             fi
-            exit 0
-            ;;
-        "FAILED")
-            echo ""
-            echo "❌ Job failed!"
-            echo "Error: $(echo $RESULT | jq -r '.error // .output.error // "Unknown error"')"
-            exit 1
-            ;;
-        "IN_QUEUE"|"IN_PROGRESS")
-            echo -n "."
-            sleep 5
-            ;;
-        *)
-            echo ""
-            echo "Unknown status: $STATUS"
-            echo "Full response: $RESULT"
-            sleep 5
-            ;;
-    esac
+        done
+        
+        echo ""
+        echo "🎨 Each image has a different angle/composition!"
+        echo "   Shops can pick their favorite and maintain that style across their menu."
+        
+        exit 0
+    elif [ "$STATUS" == "FAILED" ]; then
+        echo ""
+        echo "❌ Job failed!"
+        echo $RESULT | jq '.output'
+        exit 1
+    else
+        echo -n "."
+        sleep 5
+        POLL_COUNT=$((POLL_COUNT + 1))
+    fi
 done
 
+echo ""
+echo "⏰ Timeout waiting for job completion"
+exit 1

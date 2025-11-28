@@ -1,0 +1,93 @@
+{
+  "rustic_italian": {
+    "name": "Rustic Italian",
+    "description": "Traditional pizzeria feel with warm, inviting atmosphere",
+    "background": "weathered dark wooden pizzeria table with scattered flour dusting and natural wood grain texture",
+    "lighting": "warm golden ambient lighting from vintage pendant lamps casting soft natural shadows",
+    "mood": "cozy authentic Italian trattoria atmosphere",
+    "props": "scattered fresh basil leaves with natural imperfections, rustic olive oil bottle nearby",
+    "realism": "authentic handmade appearance with natural irregularities, slightly uneven cheese melt, charred crust spots, real food texture not CGI or plastic, matte finish on ingredients, organic imperfections",
+    "variations": [
+      {"angle": "overhead flat lay shot", "focus": "full pizza centered showing natural irregular shape", "depth": "sharp focus throughout"},
+      {"angle": "45-degree angle from corner", "focus": "hero slice being lifted with real stretchy cheese pull", "depth": "shallow depth of field with bokeh"},
+      {"angle": "low angle eye-level shot", "focus": "pizza edge showing authentic charred bubbling crust", "depth": "dramatic shallow focus on nearest edge"},
+      {"angle": "close-up macro detail shot", "focus": "toppings detail showing real melted cheese texture and ingredient imperfections", "depth": "extremely shallow depth of field"}
+    ]
+  },
+  "modern_minimal": {
+    "name": "Modern Minimal",
+    "description": "Clean, contemporary, Instagram-worthy aesthetic",
+    "background": "clean white marble surface with subtle natural grey veining and texture",
+    "lighting": "bright soft diffused natural daylight from large window, gentle shadows",
+    "mood": "fresh clean contemporary cafe aesthetic",
+    "props": "small sprig with two sets of leaves",
+    "realism": "authentic artisan food with natural matte textures, visible handmade irregularities, real cheese with natural melt patterns not plastic or CGI, organic ingredient colors",
+    "variations": [
+      {"angle": "perfect overhead flat lay shot", "focus": "geometric centered composition showing natural pizza shape", "depth": "sharp focus clean lines"},
+      {"angle": "subtle 30-degree tilted angle", "focus": "asymmetric rule-of-thirds placement", "depth": "soft natural background fade"},
+      {"angle": "straight-on eye level perspective", "focus": "cross-section of slice showing authentic layers", "depth": "generous white space negative composition"},
+      {"angle": "elegant 45-degree corner angle", "focus": "partial pizza with artistic white space", "depth": "airy minimal composition"}
+    ]
+  },
+  "cozy_homestyle": {
+    "name": "Cozy Homestyle",
+    "description": "Warm, homemade, family-style comfort",
+    "background": "classic red and white checkered tablecloth on worn wooden table",
+    "lighting": "warm tungsten indoor lighting with soft natural shadows",
+    "mood": "comforting family dinner atmosphere nostalgic and inviting",
+    "props": "well-used pizza cutter nearby, cloth napkin, casual scattered crumbs",
+    "realism": "homemade authentic appearance with natural imperfections, uneven cheese distribution, real bubbled crust with char marks, matte food textures not shiny or plastic, genuine home-cooked look",
+    "variations": [
+      {"angle": "casual overhead shot", "focus": "whole pizza slightly off-center natural placement", "depth": "lifestyle photography style"},
+      {"angle": "warm 45-degree family table view", "focus": "pizza with slice being served showing cheese stretch", "depth": "inviting perspective"},
+      {"angle": "intimate close-up on slice", "focus": "detailed view of toppings and melted cheese texture", "depth": "shallow focus cozy feeling"},
+      {"angle": "wide establishing shot", "focus": "pizza in context of homey table setting", "depth": "environmental storytelling"}
+    ]
+  },
+  "premium_upscale": {
+    "name": "Premium Upscale",
+    "description": "High-end restaurant, sophisticated presentation",
+    "background": "dark natural slate or black stone surface with elegant texture",
+    "lighting": "dramatic directional spotlight with deep natural shadows",
+    "mood": "sophisticated fine dining premium artisan quality",
+    "props": "fresh microgreens garnish, artisan ingredients with natural imperfections",
+    "realism": "artisan handcrafted appearance with authentic textures, natural matte finish on cheese, real charred crust details, premium but not artificial, genuine gourmet food photography not CGI",
+    "variations": [
+      {"angle": "dramatic low angle hero shot", "focus": "pizza as hero against dark moody background", "depth": "chiaroscuro lighting style"},
+      {"angle": "artistic overhead with negative space", "focus": "artful minimalist plating showing natural pizza shape", "depth": "editorial magazine composition"},
+      {"angle": "elegant 45-degree angle", "focus": "premium toppings highlighted with natural textures", "depth": "luxury food photography style"},
+      {"angle": "extreme close-up detail shot", "focus": "texture of premium ingredients showing authenticity", "depth": "macro detail revealing real food texture"}
+    ]
+  },
+  "street_food": {
+    "name": "Street Food Vibes",
+    "description": "Casual, energetic, grab-and-go urban feel",
+    "background": "industrial metal counter or food truck serving window with urban texture",
+    "lighting": "bright energetic mixed lighting with subtle neon accents",
+    "mood": "energetic urban street food market atmosphere authentic and casual",
+    "props": "kraft paper plates, casual rustic presentation, hints of busy environment",
+    "realism": "authentic street food appearance with natural imperfections, real melted cheese with uneven texture, genuine handmade crust with char spots, not polished or plastic looking, authentic casual food photography",
+    "variations": [
+      {"angle": "straight-on counter view", "focus": "pizza ready to grab showing authentic appearance", "depth": "urban environment context"},
+      {"angle": "handheld POV angle", "focus": "slice being held up showing real cheese stretch", "depth": "authentic street food moment"},
+      {"angle": "dynamic 45-degree action shot", "focus": "fresh out of oven with visible steam rising", "depth": "energy and movement"},
+      {"angle": "wide urban environment shot", "focus": "pizza in authentic street food context", "depth": "lifestyle storytelling"}
+    ]
+  },
+  "garden_fresh": {
+    "name": "Garden Fresh",
+    "description": "Organic, farm-to-table, natural ingredients focus",
+    "background": "natural light wooden cutting board with fresh herbs and garden vegetables nearby",
+    "lighting": "soft natural sunlight with gentle outdoor garden atmosphere shadows",
+    "mood": "fresh healthy organic farm-to-table feel authentic and natural",
+    "props": "fresh tomatoes on vine with natural imperfections, living basil plant, scattered organic ingredients",
+    "realism": "organic natural appearance with real food imperfections, authentic matte textures on vegetables, genuine handmade pizza with irregular shape, natural cheese melt not plastic or CGI, farm-fresh authentic photography",
+    "variations": [
+      {"angle": "overhead ingredient spread shot", "focus": "pizza surrounded by fresh natural ingredients", "depth": "recipe style photography"},
+      {"angle": "natural 45-degree garden table view", "focus": "outdoor dining with authentic food", "depth": "farm-to-table narrative"},
+      {"angle": "close-up on fresh organic toppings", "focus": "organic ingredient quality and natural textures", "depth": "ingredient hero shot"},
+      {"angle": "wide rustic harvest spread", "focus": "abundance of fresh produce around pizza", "depth": "harvest table composition"}
+    ]
+  }
+}
+

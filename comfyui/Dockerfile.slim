@@ -1,4 +1,5 @@
 # ComfyUI Slim for Flux 2.0 FP8
+# Features: Multi-image generation, LLM Judge, Menu Templates
 # Models downloaded on first run (~54GB total)
 # Use with 100GB+ container disk on RunPod
 
@@ -30,19 +31,25 @@ RUN pip install --no-cache-dir \
     runpod \
     requests \
     aiohttp \
-    huggingface_hub
+    huggingface_hub \
+    openai \
+    anthropic
 
 # Create model directories (matching ComfyUI's expected structure)
 RUN mkdir -p ${COMFYUI_PATH}/models/diffusion_models \
     ${COMFYUI_PATH}/models/text_encoders \
     ${COMFYUI_PATH}/models/vae \
-    ${COMFYUI_PATH}/output
+    ${COMFYUI_PATH}/output \
+    ${COMFYUI_PATH}/input
 
-# Copy handler and workflow files
+# Copy handler, workflow, template, and scene files
 COPY handler_slim.py /handler.py
 COPY workflow.json /workflow.json
+COPY workflow_with_refs.json /workflow_with_refs.json
+COPY templates.json /templates.json
+COPY scenes.json /scenes.json
+COPY llm_judge.py /llm_judge.py
 
 WORKDIR /
 
 CMD ["python", "-u", "/handler.py"]
-

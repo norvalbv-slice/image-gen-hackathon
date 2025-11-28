@@ -1,6 +1,10 @@
 """
 RunPod Serverless Handler for ComfyUI + Flux 2.0 (Slim Version)
-Models downloaded on first run using huggingface_hub (cached by FlashBoot)
+Features:
+- Multi-image generation (num_images param)
+- Menu item templates (pizza, pasta, salad, dessert, etc.)
+- LLM as judge for auto-selecting best image
+- Reference image support (coming soon)
 """
 
 import runpod
@@ -12,11 +16,14 @@ import base64
 import glob
 import random
 import requests
+import shutil
 from huggingface_hub import hf_hub_download
 
 # Configuration
 COMFYUI_PATH = os.environ.get("COMFYUI_PATH", "/comfyui")
 WORKFLOW_PATH = "/workflow.json"
+TEMPLATES_PATH = "/templates.json"
+SCENES_PATH = "/scenes.json"
 OUTPUT_DIR = f"{COMFYUI_PATH}/output"
 COMFYUI_PORT = 8188
 
@@ -28,8 +35,6 @@ TEXT_ENCODER_PATH = f"{COMFYUI_PATH}/models/text_encoders"
 
 def ensure_models_downloaded():
     """Download official FP8 models using huggingface_hub"""
-    import shutil
-
     unet_file = f"{DIFFUSION_PATH}/flux2_dev_fp8mixed.safetensors"
 
     if os.path.exists(unet_file):
@@ -96,14 +101,172 @@ def load_workflow():
         return json.load(f)
 
 
+def load_templates():
+    """Load menu item templates for prompt building."""
+    try:
+        with open(TEMPLATES_PATH, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("Templates file not found, using defaults")
+        return {}
+
+
+def load_scenes():
+    """Load scene configurations for consistent shop themes."""
+    try:
+        with open(SCENES_PATH, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("Scenes file not found, using defaults")
+        return {}
+
+
+def get_available_scenes():
+    """Return list of available scene names."""
+    scenes = load_scenes()
+    return list(scenes.keys())
+
+
+def build_scene_prompt(
+    item_name: str, item_description: str, scene_id: str, variation_index: int = 0
+) -> dict:
+    """
+    Build a prompt using scene configuration with specific variation.
+    Returns dict with prompt and metadata about the variation used.
+    """
+    scenes = load_scenes()
+
+    # Default to rustic_italian if scene not found
+    if scene_id not in scenes:
+        print(f"Scene '{scene_id}' not found, using rustic_italian")
+        scene_id = "rustic_italian"
+
+    scene = scenes[scene_id]
+    variations = scene.get("variations", [])
+
+    # Get the specific variation (wrap around if index exceeds available)
+    if variations:
+        variation = variations[variation_index % len(variations)]
+    else:
+        variation = {"angle": "overhead", "focus": "centered", "depth": "sharp focus"}
+
+    # Build the prompt with scene elements + variation
+    prompt_parts = [
+        # Subject first (Flux 2 best practice)
+        f"{item_name} with {item_description}",
+        # Realism descriptors (anti-plastic, authentic look)
+        scene.get(
+            "realism",
+            "authentic handmade appearance with natural imperfections, real food texture not CGI or plastic",
+        ),
+        # Scene elements (consistent for the shop's theme)
+        scene.get("background", ""),
+        scene.get("lighting", ""),
+        scene.get("mood", ""),
+        scene.get("props", ""),
+        # Variation elements (different for each image)
+        variation.get("angle", ""),
+        variation.get("focus", ""),
+        variation.get("depth", ""),
+        # Photography quality (emphasize real, not artificial)
+        "editorial food photography, high resolution, appetizing, shot on Canon 5D Mark IV",
+    ]
+
+    # Filter empty parts and join
+    full_prompt = ", ".join(part for part in prompt_parts if part)
+
+    return {
+        "prompt": full_prompt,
+        "scene_id": scene_id,
+        "scene_name": scene.get("name", scene_id),
+        "variation_index": variation_index,
+        "variation": variation,
+    }
+
+
+# Replace with fuzzy matching as this approach *sucks* 🤠
+def detect_item_type(item_name: str, item_description: str) -> str:
+    """Auto-detect the food category based on item name/description."""
+    text = f"{item_name} {item_description}".lower()
+
+    if any(word in text for word in ["pizza", "margherita", "pepperoni", "calzone"]):
+        return "pizza"
+    elif any(
+        word in text
+        for word in ["pasta", "spaghetti", "penne", "fettuccine", "lasagna", "ravioli"]
+    ):
+        return "pasta"
+    elif any(word in text for word in ["salad", "greens", "caesar", "arugula"]):
+        return "salad"
+    elif any(
+        word in text
+        for word in [
+            "cake",
+            "cookie",
+            "brownie",
+            "tiramisu",
+            "gelato",
+            "ice cream",
+            "dessert",
+            "cannoli",
+        ]
+    ):
+        return "dessert"
+    elif any(word in text for word in ["sandwich", "sub", "panini", "wrap", "burger"]):
+        return "sandwich"
+    elif any(
+        word in text
+        for word in ["wings", "breadsticks", "appetizer", "bruschetta", "garlic bread"]
+    ):
+        return "appetizer"
+    elif any(
+        word in text
+        for word in ["soda", "drink", "beer", "wine", "coffee", "tea", "smoothie"]
+    ):
+        return "drink"
+    else:
+        return "default"
+
+
+def build_prompt(
+    item_name: str, item_description: str, item_type: str = None, templates: dict = None
+) -> str:
+    """Build a complete prompt using templates."""
+    if templates is None:
+        templates = load_templates()
+
+    # Auto-detect type if not provided
+    if item_type is None:
+        item_type = detect_item_type(item_name, item_description)
+
+    # Get template (fallback to default)
+    template = templates.get(item_type, templates.get("default", {}))
+
+    # Build prompt parts
+    parts = [
+        f"{item_name} with {item_description}",
+        template.get("suffix", ""),
+        template.get("background", ""),
+        template.get("lighting", ""),
+        template.get("camera", ""),
+        "inviting and delicious mood",
+    ]
+
+    # Filter empty parts and join
+    return ", ".join(part for part in parts if part)
+
+
 def update_workflow_prompt(workflow, positive_prompt, negative_prompt=None, seed=None):
+    """Update workflow with prompt and seed."""
+    workflow = json.loads(json.dumps(workflow))  # Deep copy
+
     if "6" in workflow:
         workflow["6"]["inputs"]["text"] = positive_prompt
     if negative_prompt and "7" in workflow:
         workflow["7"]["inputs"]["text"] = negative_prompt
     if "10" in workflow:
         workflow["10"]["inputs"]["seed"] = (
-            seed if seed else random.randint(0, 2**32 - 1)
+            seed if seed is not None else random.randint(0, 2**32 - 1)
         )
     return workflow
 
@@ -187,6 +350,52 @@ def cleanup_outputs():
             pass
 
 
+def save_reference_images(reference_images_b64: list) -> list:
+    """Save base64 reference images to temp files for ComfyUI."""
+    import tempfile
+
+    saved_paths = []
+    input_dir = f"{COMFYUI_PATH}/input"
+    os.makedirs(input_dir, exist_ok=True)
+
+    for i, img_b64 in enumerate(reference_images_b64):
+        filepath = f"{input_dir}/ref_{i}.png"
+        with open(filepath, "wb") as f:
+            f.write(base64.b64decode(img_b64))
+        saved_paths.append(filepath)
+        print(f"Saved reference image: {filepath}")
+
+    return saved_paths
+
+
+def cleanup_reference_images():
+    """Clean up temporary reference images."""
+    input_dir = f"{COMFYUI_PATH}/input"
+    for f in glob.glob(f"{input_dir}/ref_*.png"):
+        try:
+            os.remove(f)
+        except:
+            pass
+
+
+def generate_single_image(workflow, positive_prompt, negative_prompt, seed):
+    """Generate a single image and return base64 + seed."""
+    cleanup_outputs()
+    updated_workflow = update_workflow_prompt(
+        workflow, positive_prompt, negative_prompt, seed
+    )
+    actual_seed = updated_workflow["10"]["inputs"]["seed"]
+
+    print(f"Generating with seed {actual_seed}...")
+    prompt_id = queue_prompt(updated_workflow)
+    wait_for_completion(prompt_id)
+
+    image_path = get_latest_image()
+    image_base64 = image_to_base64(image_path)
+
+    return {"image_base64": image_base64, "seed": actual_seed}
+
+
 comfyui_process = None
 initialized = False
 
@@ -202,51 +411,137 @@ def handler(event):
 
         job_input = event.get("input", {})
 
-        # Load workflow to get prompt template
+        # Load workflow and templates
         workflow = load_workflow()
+        templates = load_templates()
 
-        positive_prompt = job_input.get("positive_prompt")
-        if not positive_prompt:
-            # Get template from workflow.json and substitute placeholders
-            prompt_template = workflow["6"]["inputs"]["text"]
-            item_name = job_input.get("item_name", "pepperoni pizza")
-            item_description = job_input.get("item_description", "classic toppings")
-            positive_prompt = prompt_template.format(
-                item_name=item_name, item_description=item_description
-            )
+        # Get input parameters
+        item_name = job_input.get("item_name", "pepperoni pizza")
+        item_description = job_input.get("item_description", "classic toppings")
+        item_type = job_input.get(
+            "item_type"
+        )  # Optional, auto-detected if not provided
+        num_images = min(
+            max(job_input.get("num_images", 1), 1), 4
+        )  # Clamp 1-4 (max variations per scene)
+        auto_select = job_input.get("auto_select", False)
 
-        # Flux 2 doesn't use negative prompts effectively - use empty string
+        # NEW: Scene-based generation for consistent shop themes with varied compositions
+        scene = job_input.get("scene")  # e.g., "rustic_italian", "modern_minimal", etc.
+
+        reference_images = job_input.get("reference_images", [])
+
+        # Handle reference images (future: integrate with workflow)
+        ref_paths = []
+        if reference_images:
+            print(f"Received {len(reference_images)} reference images")
+            ref_paths = save_reference_images(reference_images[:4])
+
+        # Flux 2 doesn't use negative prompts effectively
         negative_prompt = job_input.get("negative_prompt", "")
 
-        seed = job_input.get("seed")
-
+        # Start ComfyUI if not running
         if comfyui_process is None or comfyui_process.poll() is not None:
             print("Starting ComfyUI server...")
             comfyui_process = start_comfyui_server()
             wait_for_server()
 
-        cleanup_outputs()
-        workflow = update_workflow_prompt(
-            workflow, positive_prompt, negative_prompt, seed
-        )
-        actual_seed = workflow["10"]["inputs"]["seed"]
+        results = []
+        base_seed = job_input.get("seed")
 
-        print(f"Queuing prompt with seed {actual_seed}...")
-        prompt_id = queue_prompt(workflow)
+        # SCENE-BASED GENERATION: Different prompts for each image (meaningful variety)
+        if scene:
+            print(f"Using scene: {scene} with {num_images} variations")
 
-        print("Waiting for generation...")
-        wait_for_completion(prompt_id)
+            for i in range(num_images):
+                # Build unique prompt for each variation
+                prompt_data = build_scene_prompt(item_name, item_description, scene, i)
+                positive_prompt = prompt_data["prompt"]
 
-        image_path = get_latest_image()
-        image_base64 = image_to_base64(image_path)
+                seed = base_seed if (i == 0 and base_seed is not None) else None
 
-        print(f"Image generated: {image_path}")
-        return {
-            "image_base64": image_base64,
-            "seed": actual_seed,
-            "prompt": positive_prompt,
-            "status": "success",
-        }
+                print(
+                    f"Generating variation {i + 1}/{num_images}: {prompt_data['variation']}"
+                )
+                result = generate_single_image(
+                    workflow, positive_prompt, negative_prompt, seed
+                )
+
+                # Add variation metadata to result
+                result["variation"] = prompt_data["variation"]
+                result["variation_index"] = i
+                result["prompt"] = positive_prompt
+                results.append(result)
+
+            # Response includes scene info
+            response = {
+                "images": results,
+                "scene": scene,
+                "scene_name": load_scenes().get(scene, {}).get("name", scene),
+                "item_type": item_type or detect_item_type(item_name, item_description),
+                "num_images": num_images,
+                "status": "success",
+            }
+
+        # LEGACY MODE: Same prompt, different seeds (for backwards compatibility)
+        else:
+            positive_prompt = job_input.get("positive_prompt")
+            if not positive_prompt:
+                positive_prompt = build_prompt(
+                    item_name, item_description, item_type, templates
+                )
+
+            for i in range(num_images):
+                seed = base_seed if (i == 0 and base_seed is not None) else None
+                print(f"Generating image {i + 1}/{num_images}...")
+                result = generate_single_image(
+                    workflow, positive_prompt, negative_prompt, seed
+                )
+                result["prompt"] = positive_prompt
+                results.append(result)
+
+            response = {
+                "images": results,
+                "prompt": positive_prompt,
+                "item_type": item_type or detect_item_type(item_name, item_description),
+                "num_images": num_images,
+                "status": "success",
+            }
+
+        # Apply LLM judge if requested (now more useful with varied images!)
+        if auto_select and num_images > 1:
+            try:
+                from llm_judge import judge_images
+
+                images_b64 = [r["image_base64"] for r in results]
+                judge_result = judge_images(images_b64, item_name)
+
+                response["judge_result"] = judge_result
+                response["best_image"] = results[judge_result["best_index"]]
+                response["best_index"] = judge_result["best_index"]
+
+                print(
+                    f"LLM Judge selected image {judge_result['best_index'] + 1}: {judge_result.get('reasoning', '')}"
+                )
+            except Exception as e:
+                print(f"LLM Judge failed: {e}")
+                response["judge_error"] = str(e)
+                response["best_image"] = results[0]
+                response["best_index"] = 0
+        elif num_images == 1:
+            response["best_image"] = results[0]
+            response["best_index"] = 0
+
+        # Cleanup reference images
+        if ref_paths:
+            cleanup_reference_images()
+            response["reference_images_used"] = len(ref_paths)
+
+        # Add available scenes to response for discoverability
+        response["available_scenes"] = get_available_scenes()
+
+        print(f"Generated {num_images} image(s) successfully")
+        return response
 
     except Exception as e:
         print(f"Error: {str(e)}")

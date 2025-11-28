@@ -263,37 +263,30 @@ def build_prompt_from_extracted_scene(
     prompt_parts = [
         # Subject first (Flux 2 best practice)
         f"{item_name} with {item_description}",
-        
         # Food state (slice cut, cheese pull, etc.) - IMPORTANT for matching reference
         extracted_scene.get("food_state", ""),
-        
         # Surface/serving object
-        f"on {extracted_scene.get('surface_object', 'rustic wooden board')}" if extracted_scene.get("surface_object") else "",
-        
+        f"on {extracted_scene.get('surface_object', 'rustic wooden board')}"
+        if extracted_scene.get("surface_object")
+        else "",
         # Background - exact description
         extracted_scene.get("background", ""),
-        
         # Props with positions - makes scene match
         extracted_scene.get("props", ""),
-        
         # Lighting setup - critical for matching style
         extracted_scene.get("lighting", ""),
-        
         # Camera angle and perspective
         extracted_scene.get("camera_angle", ""),
-        
         # Depth of field
         extracted_scene.get("depth_of_field", ""),
-        
         # Color palette influence
-        f"color palette of {extracted_scene.get('color_palette', '')}" if extracted_scene.get("color_palette") else "",
-        
+        f"color palette of {extracted_scene.get('color_palette', '')}"
+        if extracted_scene.get("color_palette")
+        else "",
         # Mood/atmosphere
         extracted_scene.get("mood", ""),
-        
         # Realism/texture details
         extracted_scene.get("realism", "authentic food texture, natural imperfections"),
-        
         # Photography quality
         "professional editorial food photography, high resolution, appetizing presentation",
     ]

@@ -126,14 +126,14 @@ def load_workflow_img2img():
 def save_reference_for_workflow(image_base64: str) -> str:
     """Save reference image to ComfyUI input folder for img2img workflow."""
     os.makedirs(INPUT_DIR, exist_ok=True)
-    
+
     # Save as reference.png (the workflow expects this filename)
     ref_path = os.path.join(INPUT_DIR, "reference.png")
-    
+
     image_data = base64.b64decode(image_base64)
     with open(ref_path, "wb") as f:
         f.write(image_data)
-    
+
     print(f"Saved reference image to {ref_path} ({len(image_data)} bytes)")
     return ref_path
 
@@ -560,16 +560,18 @@ def handler(event):
                 # Step 1: Extract detailed scene characteristics
                 extracted_scene = extract_scene_from_image(reference_image)
                 print(f"Extracted scene: {extracted_scene.get('name', 'Unknown')}")
-                
+
                 # Step 2: Save reference image for img2img workflow
                 ref_path = save_reference_for_workflow(reference_image)
                 print(f"Reference saved for img2img: {ref_path}")
-                
+
                 # Step 3: Load img2img workflow (uses reference as latent starting point)
                 img2img_workflow = load_workflow_img2img()
-                
+
                 # Get denoise value (higher = more change from reference, lower = more similar)
-                denoise = job_input.get("denoise", 0.6)  # Default 0.6 = 60% new, 40% reference
+                denoise = job_input.get(
+                    "denoise", 0.6
+                )  # Default 0.6 = 60% new, 40% reference
                 img2img_workflow["10"]["inputs"]["denoise"] = denoise
                 print(f"Using denoise: {denoise} (lower = more similar to reference)")
 

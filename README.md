@@ -17,7 +17,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                   RUNPOD SERVERLESS ENDPOINT                    │
 │  Endpoint ID: mjiwr7uipx2nbs                                    │
-│  Image: benjithegreat/comfyui-flux2:fp8-v9                      │
+│  Image: benjithegreat/comfyui-flux2:fp8-v10                     │
 │  GPU: NVIDIA A100 80GB                                          │
 │                                                                 │
 │  ComfyUI + Flux 2.0 FP8 → Returns base64 PNG images            │
@@ -28,18 +28,28 @@
 
 ```
 comfyui/
-├── handler_slim.py      # Main RunPod serverless handler
-├── workflow.json        # ComfyUI node graph for Flux 2.0
-├── scenes.json          # Scene configurations (6 themes, 4 variations each)
-├── templates.json       # Food category prompt templates
-├── scene_extractor.py   # GPT-5.1 reference image analysis
-├── llm_judge.py         # GPT-4V/Claude image evaluation
-├── Dockerfile.slim      # Slim Docker image (~2GB, models downloaded at runtime)
-├── build.sh             # Build Docker image
-├── push.sh              # Push to Docker Hub
-├── test_fp8_endpoint.sh # CLI to test scene-based generation
-└── test_reference.sh    # CLI to test reference image extraction
+├── handler_slim.py       # Main RunPod serverless handler
+├── workflow.json         # Text-to-image workflow (starts from noise)
+├── workflow_img2img.json # Img2img workflow (starts from reference latent)
+├── scenes.json           # Scene configurations (6 themes, 4 variations each)
+├── templates.json        # Food category prompt templates
+├── scene_extractor.py    # GPT-5.1 reference image analysis (extracts 11 properties)
+├── llm_judge.py          # GPT-4V/Claude image evaluation
+├── Dockerfile.slim       # Slim Docker image (~2GB, models downloaded at runtime)
+├── build.sh              # Build Docker image
+├── push.sh               # Push to Docker Hub
+├── test_fp8_endpoint.sh  # CLI to test scene-based generation
+└── test_reference.sh     # CLI to test reference image extraction
 ```
+
+### Why Two Workflows?
+
+| Workflow | Use Case | Latent Source |
+|----------|----------|---------------|
+| `workflow.json` | Scene-based generation | EmptyFlux2LatentImage (random noise) |
+| `workflow_img2img.json` | Reference image matching | VAEEncode(reference) - uses ref as starting point |
+
+The img2img workflow **visually conditions** on the reference image, preserving ~40% of its composition/colors.
 
 ## 🚀 Quick Start - Testing the Endpoint
 
@@ -77,29 +87,37 @@ Each scene generates **4 variations** with different angles:
 - Eye-level shot
 - Macro close-up
 
-## 📸 Reference Image Scene Extraction
+## 📸 Reference Image Mode (Img2Img)
 
-**NEW!** Instead of using pre-defined scenes, upload an existing menu photo and GPT-5.1 will analyze it to create a custom scene:
+**NEW!** Upload an existing menu photo and generate new images that **visually match** its style:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Shop's Existing Photo                         │
-│  (e.g., their best pizza photo)                                 │
+│  (e.g., their best pizza photo with slice cut)                  │
 └─────────────────────────────────────────────────────────────────┘
                               │
-                              ▼
+            ┌─────────────────┴─────────────────┐
+            ▼                                   ▼
+┌───────────────────────────────┐  ┌───────────────────────────────┐
+│       GPT-5.1 Vision          │  │        VAEEncode              │
+│ Extracts 11 properties:       │  │  Reference → Latent Space     │
+│ - background (exact color)    │  │  (40% preserved in output)    │
+│ - surface_object (board/plate)│  └───────────────────────────────┘
+│ - props (spatula, position)   │                  │
+│ - food_state (slice cut?)     │                  │
+│ - lighting, angle, depth...   │                  │
+└───────────────────────────────┘                  │
+            │                                      │
+            └────────────────┬─────────────────────┘
+                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                        GPT-5.1 Vision                            │
-│  Extracts: background, lighting, mood, props, composition       │
-│  → Returns custom scene config                                   │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Generate New Images                           │
-│  "garlic bread" + extracted scene = consistent style!           │
+│              KSampler (denoise: 0.6)                            │
+│  Text prompt + Visual reference = Style-matched output!         │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Key improvement:** The img2img approach preserves the **visual characteristics** (wood tone, props, composition) from the reference - not just text descriptions.
 
 ### Test Reference Mode
 
@@ -122,31 +140,46 @@ curl -X POST "https://api.runpod.ai/v2/mjiwr7uipx2nbs/run" \
       "item_description": "buttery with herbs",
       "reference_image": "'"$REFERENCE"'",
       "extract_scene": true,
+      "denoise": 0.6,
       "save_scene_as": "my_shop_style",
       "num_images": 4
     }
   }'
 ```
 
+### Denoise Parameter
+
+| Value | Effect |
+|-------|--------|
+| `0.3` | Very similar to reference (70% preserved) |
+| `0.5` | Balanced blend (50% reference, 50% new) |
+| **`0.6`** | **Default** - good balance for different food items |
+| `0.8` | Mostly new generation (20% reference influence) |
+
 ### Response with Extracted Scene
 
 ```json
 {
   "status": "success",
-  "mode": "reference_extraction",
+  "mode": "reference_img2img",
+  "denoise": 0.6,
   "extracted_scene": {
-    "name": "Warm Italian Trattoria",
-    "background": "rustic dark wooden table, terracotta wall",
-    "lighting": "warm side lighting from left, soft shadows",
-    "mood": "cozy, authentic, inviting",
-    "props": "white linen napkin, scattered herbs"
+    "name": "Rustic Pizzeria",
+    "background": "whitewashed weathered wood planks with gray grain",
+    "surface_object": "round rustic wooden serving board with dark finish",
+    "props": "wooden pizza spatula on left side, scattered fresh oregano",
+    "food_state": "one triangular slice lifted",
+    "lighting": "dramatic side lighting from left, warm golden tone",
+    "camera_angle": "30-degree angle from front-left corner",
+    "depth_of_field": "sharp focus on front half, soft blur on background",
+    "color_palette": "warm browns, cream whites, red sauce tones"
   },
   "scene_id": "my_shop_style",
   "images": [...]
 }
 ```
 
-**Use case:** Shop uploads their best existing photo → all new generated images match that style!
+**Use case:** Shop uploads their best existing photo → all new generated images match that **exact style** (wood tone, props, lighting, composition)!
 
 ## 🐳 Why Docker Slim?
 
@@ -229,7 +262,7 @@ vim comfyui/workflow.json     # ComfyUI node graph
 
 # 2. Build new Docker image
 cd comfyui
-./build.sh   # Creates benjithegreat/comfyui-flux2:fp8-v9
+./build.sh   # Creates benjithegreat/comfyui-flux2:fp8-v10
 
 # 3. Push to Docker Hub
 ./push.sh    # Pushes to Docker Hub
@@ -254,7 +287,7 @@ RunPod caches workers with FlashBoot. To force new code:
 
 - **Endpoint ID:** `mjiwr7uipx2nbs`
 - **Template ID:** `07hps30fle`
-- **Docker Image:** `benjithegreat/comfyui-flux2:fp8-v9`
+- **Docker Image:** `benjithegreat/comfyui-flux2:fp8-v10`
 - **GPU:** A100 80GB only (forced for consistent ~25s generation)
 
 ## 🤖 LLM as Judge

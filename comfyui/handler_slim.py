@@ -589,7 +589,7 @@ def handler(event):
         print(f"[CONDITION CHECK] extract_scene truthy: {bool(extract_scene)}")
         print(f"[CONDITION CHECK] Will enter reference mode: {bool(reference_image and extract_scene)}")
 
-        # REFERENCE IMAGE MODE: Extract scene + use img2img for visual consistency
+        # REFERENCE IMAGE MODE: Extract scene + generate with same style
         if reference_image and extract_scene:
             print("=" * 60)
             print("=== REFERENCE IMAGE MODE ACTIVATED ===")
@@ -618,46 +618,60 @@ def handler(event):
                 for key, value in extracted_scene.items():
                     print(f"  - {key}: {value}")
 
-                # Step 2: Save reference image for img2img workflow
-                print("\n[STEP 2] Saving reference image for img2img workflow...")
-                ref_path = save_reference_for_workflow(reference_image)
-                print(f"[REFERENCE SAVED TO]: {ref_path}")
-
-                # Verify the file exists
-                if os.path.exists(ref_path):
-                    file_size = os.path.getsize(ref_path)
-                    print(f"[REFERENCE FILE EXISTS]: Yes, size={file_size} bytes")
+                # Step 2: Detect if we should use img2img or text2img
+                # img2img preserves food SHAPE - only use for same food type (pizza -> pizza)
+                # text2img with scene settings - use for different food (pizza -> pasta)
+                ref_food_type = extracted_scene.get("detected_food_type", "pizza")  # Default to pizza
+                target_food_type = item_type or detect_item_type(item_name, item_description)
+                
+                # Check if food types are compatible for img2img
+                # Pizza variants can use img2img, but pasta/salad/etc should use text2img
+                use_img2img = job_input.get("use_img2img", None)  # Allow manual override
+                if use_img2img is None:
+                    # Auto-detect: only use img2img if same food category
+                    pizza_types = ["pizza", "flatbread", "focaccia"]
+                    ref_is_pizza = ref_food_type.lower() in pizza_types or "pizza" in ref_food_type.lower()
+                    target_is_pizza = target_food_type.lower() in pizza_types or "pizza" in item_name.lower()
+                    use_img2img = ref_is_pizza and target_is_pizza
+                
+                print(f"\n[STEP 2] Food type detection:")
+                print(f"  Reference food type: {ref_food_type}")
+                print(f"  Target food type: {target_food_type}")
+                print(f"  Use img2img (preserve shape): {use_img2img}")
+                
+                if use_img2img:
+                    # img2img mode: Use reference as latent starting point (for same food type)
+                    print("\n[STEP 3] Using IMG2IMG workflow (same food type - preserving composition)")
+                    ref_path = save_reference_for_workflow(reference_image)
+                    print(f"[REFERENCE SAVED TO]: {ref_path}")
+                    
+                    if os.path.exists(ref_path):
+                        file_size = os.path.getsize(ref_path)
+                        print(f"[REFERENCE FILE EXISTS]: Yes, size={file_size} bytes")
+                    
+                    selected_workflow = load_workflow_img2img()
+                    denoise = job_input.get("denoise", 0.6)
+                    selected_workflow["10"]["inputs"]["denoise"] = denoise
+                    print(f"[DENOISE]: {denoise} (lower = more similar to reference)")
+                    generation_mode = "reference_img2img"
                 else:
-                    print(f"[REFERENCE FILE EXISTS]: NO! File not found at {ref_path}")
+                    # text2img mode: Use extracted scene settings but generate fresh (for different food)
+                    print("\n[STEP 3] Using TEXT2IMG workflow (different food type - fresh generation with scene style)")
+                    selected_workflow = load_workflow()
+                    denoise = 1.0  # Full generation, no reference influence on shape
+                    generation_mode = "reference_scene_only"
+                    print(f"[MODE]: Text-to-image with extracted scene styling")
 
-                # Step 3: Load img2img workflow (uses reference as latent starting point)
-                print("\n[STEP 3] Loading img2img workflow...")
-                print(f"[WORKFLOW PATH]: {WORKFLOW_IMG2IMG_PATH}")
-                img2img_workflow = load_workflow_img2img()
-                print(f"[WORKFLOW LOADED]: {list(img2img_workflow.keys())}")
-
-                # Check if LoadImage node exists and has correct path
-                if "13" in img2img_workflow:
-                    load_image_inputs = img2img_workflow["13"]["inputs"]
-                    print(f"[LoadImage NODE 13]: {load_image_inputs}")
-                else:
-                    print("[WARNING]: LoadImage node 13 not found in workflow!")
-
-                # Get denoise value (higher = more change from reference, lower = more similar)
-                denoise = job_input.get(
-                    "denoise", 0.6
-                )  # Default 0.6 = 60% new, 40% reference
-                img2img_workflow["10"]["inputs"]["denoise"] = denoise
-                print(
-                    f"\n[STEP 4] Setting denoise: {denoise} (lower = more similar to reference)"
-                )
-                print(f"[KSampler NODE 10 inputs]: {img2img_workflow['10']['inputs']}")
-
-                # Generate images using extracted scene config + img2img
-                print("\n[STEP 5] Generating images...")
+                # Generate images using extracted scene config
+                # img2img: Don't vary angles (preserve reference composition)
+                # text2img: Vary angles (fresh generation can have different compositions)
+                apply_variations = not use_img2img
+                
                 for i in range(num_images):
                     prompt_data = build_prompt_from_extracted_scene(
-                        item_name, item_description, extracted_scene, i
+                        item_name, item_description, extracted_scene, i,
+                        target_food_type=target_food_type,
+                        apply_angle_variations=apply_variations
                     )
                     positive_prompt = prompt_data["prompt"]
                     print(f"\n[IMAGE {i + 1}/{num_images}]")
@@ -666,10 +680,10 @@ def handler(event):
                     seed = base_seed if (i == 0 and base_seed is not None) else None
 
                     print(
-                        f"[GENERATING]: img2img variation {i + 1}/{num_images}, seed={seed}"
+                        f"[GENERATING]: {generation_mode} variation {i + 1}/{num_images}, seed={seed}"
                     )
                     result = generate_single_image(
-                        img2img_workflow, positive_prompt, negative_prompt, seed
+                        selected_workflow, positive_prompt, negative_prompt, seed
                     )
                     print(
                         f"[GENERATED]: seed={result.get('seed')}, has_image={bool(result.get('image_base64'))}"
@@ -695,7 +709,8 @@ def handler(event):
                     "num_images": num_images,
                     "denoise": denoise,
                     "status": "success",
-                    "mode": "reference_img2img",
+                    "mode": generation_mode,
+                    "used_img2img": use_img2img,
                 }
 
                 # Include scene_id if user wants to save it

@@ -82,7 +82,7 @@ if [ "$JOB_ID" == "null" ] || [ -z "$JOB_ID" ]; then
     exit 1
 fi
 
-echo "Polling for completion (GPT-4V analysis + image generation)..."
+echo "Polling for completion (GPT-5.1 analysis + image generation)..."
 POLL_COUNT=0
 MAX_POLLS=180  # 15 minutes max (scene extraction + generation)
 

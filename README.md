@@ -219,12 +219,6 @@ curl "https://api.runpod.ai/v2/mjiwr7uipx2nbs/status/{job_id}" \
 - **Text Encoder:** `mistral_3_small_flux2_fp8.safetensors` (~18GB)
 - **VAE:** `flux2-vae.safetensors` (~168MB)
 
-## 👥 Team
-
-- **Rick Monro** - Product lead
-- **Daniele Baelde** - Technical lead, Owners Portal
-- **David Robinson** - Engineering
-- **Benji Norval** - RunPod/ComfyUI backend
 
 ## 📚 Related Resources
 

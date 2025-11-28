@@ -62,6 +62,18 @@ fi
 
 echo "🍕 Generating ${NUM_IMAGES} pizza images with scene: ${SCENE}"
 echo "   Each image will have a DIFFERENT composition/angle!"
+
+# DEV MODE: Check for custom config URLs
+DEV_MODE_JSON=""
+if [ -n "$SCENES_URL" ]; then
+    echo "🔧 DEV MODE: Using custom scenes from: $SCENES_URL"
+    DEV_MODE_JSON="\"scenes_url\": \"${SCENES_URL}\","
+fi
+if [ -n "$TEMPLATES_URL" ]; then
+    echo "🔧 DEV MODE: Using custom templates from: $TEMPLATES_URL"
+    DEV_MODE_JSON="${DEV_MODE_JSON}\"templates_url\": \"${TEMPLATES_URL}\","
+fi
+
 echo "⚠️  First run downloads ~54GB of models - expect 5-10 min cold start"
 echo ""
 
@@ -72,6 +84,7 @@ RESPONSE=$(curl -s -X POST \
   -H "Content-Type: application/json" \
   -d '{
     "input": {
+      '"${DEV_MODE_JSON}"'
       "item_name": "pepperoni pizza",
       "item_description": "pepperoni slices, mozzarella cheese, marinara sauce, fresh basil",
       "scene": "'"${SCENE}"'",

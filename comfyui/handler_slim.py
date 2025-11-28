@@ -27,6 +27,15 @@ SCENES_PATH = "/scenes.json"
 OUTPUT_DIR = f"{COMFYUI_PATH}/output"
 COMFYUI_PORT = 8188
 
+# Remote config URLs (for live editing without Docker rebuild)
+# Set these in RunPod template env vars or pass via API
+SCENES_URL = os.environ.get("SCENES_URL", None)
+TEMPLATES_URL = os.environ.get("TEMPLATES_URL", None)
+
+# Cache for remote configs (refresh every N seconds)
+CONFIG_CACHE = {}
+CONFIG_CACHE_TTL = 60  # Refresh every 60 seconds
+
 # Model paths within ComfyUI (matching where loaders expect files)
 DIFFUSION_PATH = f"{COMFYUI_PATH}/models/diffusion_models"
 VAE_PATH = f"{COMFYUI_PATH}/models/vae"
@@ -102,7 +111,14 @@ def load_workflow():
 
 
 def load_templates():
-    """Load menu item templates for prompt building."""
+    """Load menu item templates - from URL if set, otherwise local file."""
+    # Try remote URL first (for live editing)
+    if TEMPLATES_URL:
+        remote_data = fetch_remote_config(TEMPLATES_URL, "templates")
+        if remote_data:
+            return remote_data
+    
+    # Fall back to local file
     try:
         with open(TEMPLATES_PATH, "r") as f:
             return json.load(f)
@@ -111,8 +127,41 @@ def load_templates():
         return {}
 
 
+def fetch_remote_config(url, cache_key):
+    """Fetch config from URL with caching."""
+    now = time.time()
+    
+    # Check cache
+    if cache_key in CONFIG_CACHE:
+        cached_data, cached_time = CONFIG_CACHE[cache_key]
+        if now - cached_time < CONFIG_CACHE_TTL:
+            return cached_data
+    
+    try:
+        print(f"Fetching config from {url}")
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        CONFIG_CACHE[cache_key] = (data, now)
+        print(f"Successfully loaded config from {url}")
+        return data
+    except Exception as e:
+        print(f"Failed to fetch from {url}: {e}")
+        # Return cached data if available (even if stale)
+        if cache_key in CONFIG_CACHE:
+            return CONFIG_CACHE[cache_key][0]
+        return None
+
+
 def load_scenes():
-    """Load scene configurations for consistent shop themes."""
+    """Load scene configurations - from URL if set, otherwise local file."""
+    # Try remote URL first (for live editing)
+    if SCENES_URL:
+        remote_data = fetch_remote_config(SCENES_URL, "scenes")
+        if remote_data:
+            return remote_data
+    
+    # Fall back to local file
     try:
         with open(SCENES_PATH, "r") as f:
             return json.load(f)
@@ -352,8 +401,6 @@ def cleanup_outputs():
 
 def save_reference_images(reference_images_b64: list) -> list:
     """Save base64 reference images to temp files for ComfyUI."""
-    import tempfile
-
     saved_paths = []
     input_dir = f"{COMFYUI_PATH}/input"
     os.makedirs(input_dir, exist_ok=True)
@@ -401,7 +448,7 @@ initialized = False
 
 
 def handler(event):
-    global comfyui_process, initialized
+    global comfyui_process, initialized, SCENES_URL, TEMPLATES_URL
 
     try:
         if not initialized:
@@ -410,6 +457,21 @@ def handler(event):
             initialized = True
 
         job_input = event.get("input", {})
+
+        # DEV MODE: Allow overriding config URLs per-request for testing
+        # This lets developers test their own branches without changing the endpoint
+        request_scenes_url = job_input.get("scenes_url")
+        request_templates_url = job_input.get("templates_url")
+        
+        if request_scenes_url:
+            print(f"DEV MODE: Using custom scenes_url: {request_scenes_url}")
+            SCENES_URL = request_scenes_url
+            CONFIG_CACHE.pop("scenes", None)  # Clear cache to force reload
+        
+        if request_templates_url:
+            print(f"DEV MODE: Using custom templates_url: {request_templates_url}")
+            TEMPLATES_URL = request_templates_url
+            CONFIG_CACHE.pop("templates", None)  # Clear cache to force reload
 
         # Load workflow and templates
         workflow = load_workflow()

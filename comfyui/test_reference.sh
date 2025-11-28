@@ -103,10 +103,15 @@ while [ $POLL_COUNT -lt $MAX_POLLS ]; do
         echo ""
         echo "✅ Job completed!"
         
-        OUTPUT=$(echo $RESULT | jq -r '.output')
-        MODE=$(echo $OUTPUT | jq -r '.mode // "unknown"')
-        SCENE_NAME=$(echo $OUTPUT | jq -r '.scene_name // "Custom Style"')
-        NUM_GENERATED=$(echo $OUTPUT | jq -r '.num_images // 1')
+        # Save to temp file FIRST to avoid any variable expansion of 4MB data
+        TEMP_FILE=$(mktemp)
+        curl -s "https://api.runpod.ai/v2/${ENDPOINT_ID}/status/${JOB_ID}" \
+          -H "Authorization: Bearer ${RUNPOD_API_KEY}" > "$TEMP_FILE"
+        
+        # Extract metadata from file (fast - jq reads file directly)
+        MODE=$(jq -r '.output.mode // "unknown"' "$TEMP_FILE")
+        SCENE_NAME=$(jq -r '.output.scene_name // "Custom Style"' "$TEMP_FILE")
+        NUM_GENERATED=$(jq -r '.output.num_images // 1' "$TEMP_FILE")
         
         echo ""
         echo "📋 Extracted Scene: $SCENE_NAME"
@@ -116,34 +121,33 @@ while [ $POLL_COUNT -lt $MAX_POLLS ]; do
         # Show extracted scene details
         echo ""
         echo "🎨 Scene Characteristics:"
-        echo $OUTPUT | jq -r '.extracted_scene | "   Background: \(.background // "N/A")\n   Lighting: \(.lighting // "N/A")\n   Mood: \(.mood // "N/A")\n   Props: \(.props // "N/A")"'
+        jq -r '.output.extracted_scene | "   Background: \(.background // "N/A")\n   Lighting: \(.lighting // "N/A")\n   Mood: \(.mood // "N/A")\n   Props: \(.props // "N/A")"' "$TEMP_FILE"
         
-        # Save generated images (optimized: single jq parse per image)
+        # Save generated images
         echo ""
         echo "💾 Saving generated images..."
+        
         for i in $(seq 0 $((NUM_GENERATED - 1))); do
-            # Extract all fields at once to avoid re-parsing 4MB JSON multiple times
-            IMAGE_DATA=$(echo $OUTPUT | jq -r ".images[$i] | \"\(.image_base64 // \"\")|\(.seed // \"unknown\")|\(.variation.angle // \"variation_$i\")\"")
+            SEED=$(jq -r ".output.images[$i].seed // \"unknown\"" "$TEMP_FILE")
+            VARIATION=$(jq -r ".output.images[$i].variation.angle // \"variation_$i\"" "$TEMP_FILE" | tr ' ' '_')
             
-            IMAGE_B64=$(echo "$IMAGE_DATA" | cut -d'|' -f1)
-            SEED=$(echo "$IMAGE_DATA" | cut -d'|' -f2)
-            VARIATION=$(echo "$IMAGE_DATA" | cut -d'|' -f3 | tr ' ' '_')
+            FILENAME="ref_extracted_${i}_${VARIATION}_seed${SEED}.png"
+            jq -r ".output.images[$i].image_base64 // empty" "$TEMP_FILE" | base64 -d > "$FILENAME" 2>/dev/null
             
-            if [ "$IMAGE_B64" != "null" ] && [ -n "$IMAGE_B64" ] && [ "$IMAGE_B64" != "" ]; then
-                FILENAME="ref_extracted_${i}_${VARIATION}_seed${SEED}.png"
-                echo $IMAGE_B64 | base64 -d > $FILENAME
+            if [ -s "$FILENAME" ]; then
                 echo "   [$((i+1))] Saved: $FILENAME"
             fi
         done
         
         # Show save_scene_as if returned
-        SCENE_ID=$(echo $OUTPUT | jq -r '.scene_id // "N/A"')
+        SCENE_ID=$(jq -r '.output.scene_id // "N/A"' "$TEMP_FILE")
         if [ "$SCENE_ID" != "N/A" ] && [ "$SCENE_ID" != "null" ]; then
             echo ""
             echo "💡 Scene ID for reuse: $SCENE_ID"
             echo "   The Owners Portal can save this scene config for future generations"
         fi
         
+        rm -f "$TEMP_FILE"
         exit 0
     elif [ "$STATUS" == "FAILED" ]; then
         echo ""

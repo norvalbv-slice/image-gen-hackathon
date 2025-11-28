@@ -121,43 +121,38 @@ while [ $POLL_COUNT -lt $MAX_POLLS ]; do
         echo ""
         echo "✅ Job completed!"
         
-        # Extract response
-        OUTPUT=$(echo $RESULT | jq -r '.output')
-        NUM_GENERATED=$(echo $OUTPUT | jq -r '.num_images // 1')
-        SCENE_NAME=$(echo $OUTPUT | jq -r '.scene_name // "unknown"')
-        AVAILABLE=$(echo $OUTPUT | jq -r '.available_scenes | join(", ") // "N/A"')
+        # Save to temp file FIRST to avoid any variable expansion of 4MB data
+        TEMP_FILE=$(mktemp)
+        curl -s "https://api.runpod.ai/v2/${ENDPOINT_ID}/status/${JOB_ID}" \
+          -H "Authorization: Bearer ${RUNPOD_API_KEY}" > "$TEMP_FILE"
+        
+        # Extract metadata from file (fast - jq reads file directly)
+        NUM_GENERATED=$(jq -r '.output.num_images // 1' "$TEMP_FILE")
+        SCENE_NAME=$(jq -r '.output.scene_name // "unknown"' "$TEMP_FILE")
+        AVAILABLE=$(jq -r '.output.available_scenes | join(", ") // "N/A"' "$TEMP_FILE")
         
         echo "   Scene: $SCENE_NAME"
         echo "   Images generated: $NUM_GENERATED"
         echo "   Available scenes: $AVAILABLE"
         echo ""
         
-        # Save all images with variation info (optimized: single jq parse per image)
+        # Save all images (extract directly from file)
         for i in $(seq 0 $((NUM_GENERATED - 1))); do
-            # Extract all fields at once to avoid re-parsing 4MB JSON multiple times
-            IMAGE_DATA=$(echo $OUTPUT | jq -r ".images[$i] | \"\(.image_base64 // \"\")|\(.seed // \"unknown\")|\(.variation.angle // \"unknown\")\"")
+            SEED=$(jq -r ".output.images[$i].seed // \"unknown\"" "$TEMP_FILE")
+            ANGLE=$(jq -r ".output.images[$i].variation.angle // \"unknown\"" "$TEMP_FILE")
             
-            IMAGE_B64=$(echo "$IMAGE_DATA" | cut -d'|' -f1)
-            SEED=$(echo "$IMAGE_DATA" | cut -d'|' -f2)
-            ANGLE=$(echo "$IMAGE_DATA" | cut -d'|' -f3)
+            ANGLE_CLEAN=$(echo "$ANGLE" | tr ' ' '_' | tr -cd '[:alnum:]_-')
+            FILENAME="${SCENE}_${i}_${ANGLE_CLEAN}_seed${SEED}.png"
             
-            # Fallback to old format (.image_base64 at root)
-            if [ -z "$IMAGE_B64" ] && [ "$i" -eq 0 ]; then
-                IMAGE_DATA=$(echo $OUTPUT | jq -r "\"\(.image_base64 // \"\")|\(.seed // \"unknown\")\"")
-                IMAGE_B64=$(echo "$IMAGE_DATA" | cut -d'|' -f1)
-                SEED=$(echo "$IMAGE_DATA" | cut -d'|' -f2)
-                ANGLE="default"
-            fi
+            jq -r ".output.images[$i].image_base64 // empty" "$TEMP_FILE" | base64 -d > "$FILENAME" 2>/dev/null
             
-            if [ -n "$IMAGE_B64" ]; then
-                # Clean filename from angle description
-                ANGLE_CLEAN=$(echo "$ANGLE" | tr ' ' '_' | tr -cd '[:alnum:]_-')
-                FILENAME="${SCENE}_${i}_${ANGLE_CLEAN}_seed${SEED}.png"
-                echo $IMAGE_B64 | base64 -d > $FILENAME
+            if [ -s "$FILENAME" ]; then
                 echo "   [$((i+1))] Saved: $FILENAME"
                 echo "       Angle: $ANGLE"
             fi
         done
+        
+        rm -f "$TEMP_FILE"
         
         echo ""
         echo "🎨 Each image has a different angle/composition!"

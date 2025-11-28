@@ -21,6 +21,11 @@ if [ -z "$RUNPOD_API_KEY" ]; then
     exit 1
 fi
 
+if [ -z "$OPENAI_API_KEY" ]; then
+    echo "Please set OPENAI_API_KEY environment variable (for GPT-5.1 scene analysis)"
+    exit 1
+fi
+
 if [ -z "$1" ]; then
     echo "Usage: ./test_reference.sh <path_to_reference_image> [num_images]"
     echo ""
@@ -64,6 +69,7 @@ RESPONSE=$(curl -s -X POST \
       "item_description": "pepperoni slices, mozzarella cheese, marinara sauce, fresh basil",
       "reference_image": "'"${REFERENCE_BASE64}"'",
       "extract_scene": true,
+      "openai_api_key": "'"${OPENAI_API_KEY}"'",
       "save_scene_as": "my_shop_style",
       "num_images": '"${NUM_IMAGES}"'
     }

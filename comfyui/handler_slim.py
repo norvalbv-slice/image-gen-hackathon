@@ -461,12 +461,30 @@ def generate_single_image(workflow, positive_prompt, negative_prompt, seed):
     )
     actual_seed = updated_workflow["10"]["inputs"]["seed"]
 
-    print(f"Generating with seed {actual_seed}...")
+    # Debug: Show workflow details
+    print(f"[WORKFLOW DEBUG] Generating with seed {actual_seed}")
+    print(f"[WORKFLOW DEBUG] Nodes in workflow: {list(updated_workflow.keys())}")
+    
+    # Check for img2img mode (has LoadImage node 13)
+    if "13" in updated_workflow:
+        print(f"[WORKFLOW DEBUG] LoadImage node 13: {updated_workflow['13']['inputs']}")
+        print(f"[WORKFLOW DEBUG] This is IMG2IMG mode")
+    else:
+        print(f"[WORKFLOW DEBUG] This is TEXT2IMG mode (no LoadImage node)")
+    
+    # Check latent source for KSampler
+    if "10" in updated_workflow:
+        latent_input = updated_workflow["10"]["inputs"].get("latent_image")
+        print(f"[WORKFLOW DEBUG] KSampler latent_image source: {latent_input}")
+    
+    print(f"[WORKFLOW DEBUG] Prompt (first 200 chars): {positive_prompt[:200]}...")
+    
     prompt_id = queue_prompt(updated_workflow)
     wait_for_completion(prompt_id)
 
     image_path = get_latest_image()
     image_base64 = image_to_base64(image_path)
+    print(f"[WORKFLOW DEBUG] Generated image: {image_path}")
 
     return {"image_base64": image_base64, "seed": actual_seed}
 
@@ -525,6 +543,9 @@ def handler(event):
         save_scene_as = job_input.get(
             "save_scene_as"
         )  # Optional: name for extracted scene
+        
+        # API key for scene extraction (can be passed in request or set in env)
+        openai_api_key = job_input.get("openai_api_key") or os.environ.get("OPENAI_API_KEY")
 
         # Legacy support for multiple reference images (not actively used)
         reference_images = job_input.get("reference_images", [])
@@ -550,7 +571,9 @@ def handler(event):
 
         # REFERENCE IMAGE MODE: Extract scene + use img2img for visual consistency
         if reference_image and extract_scene:
-            print("Extracting scene from reference image using GPT-5.1...")
+            print("=" * 60)
+            print("=== REFERENCE IMAGE MODE ACTIVATED ===")
+            print("=" * 60)
             try:
                 from scene_extractor import (
                     extract_scene_from_image,
@@ -558,37 +581,64 @@ def handler(event):
                 )
 
                 # Step 1: Extract detailed scene characteristics
-                extracted_scene = extract_scene_from_image(reference_image)
-                print(f"Extracted scene: {extracted_scene.get('name', 'Unknown')}")
+                print("\n[STEP 1] Extracting scene from reference image using GPT-5.1...")
+                if not openai_api_key:
+                    raise ValueError("OPENAI_API_KEY not set. Pass 'openai_api_key' in request or set env var.")
+                extracted_scene = extract_scene_from_image(reference_image, api_key=openai_api_key)
+                print(f"[EXTRACTED SCENE NAME]: {extracted_scene.get('name', 'Unknown')}")
+                print(f"[EXTRACTED SCENE FULL]:")
+                for key, value in extracted_scene.items():
+                    print(f"  - {key}: {value}")
 
                 # Step 2: Save reference image for img2img workflow
+                print("\n[STEP 2] Saving reference image for img2img workflow...")
                 ref_path = save_reference_for_workflow(reference_image)
-                print(f"Reference saved for img2img: {ref_path}")
+                print(f"[REFERENCE SAVED TO]: {ref_path}")
+                
+                # Verify the file exists
+                import os
+                if os.path.exists(ref_path):
+                    file_size = os.path.getsize(ref_path)
+                    print(f"[REFERENCE FILE EXISTS]: Yes, size={file_size} bytes")
+                else:
+                    print(f"[REFERENCE FILE EXISTS]: NO! File not found at {ref_path}")
 
                 # Step 3: Load img2img workflow (uses reference as latent starting point)
+                print("\n[STEP 3] Loading img2img workflow...")
+                print(f"[WORKFLOW PATH]: {WORKFLOW_IMG2IMG_PATH}")
                 img2img_workflow = load_workflow_img2img()
+                print(f"[WORKFLOW LOADED]: {list(img2img_workflow.keys())}")
+                
+                # Check if LoadImage node exists and has correct path
+                if "13" in img2img_workflow:
+                    load_image_inputs = img2img_workflow["13"]["inputs"]
+                    print(f"[LoadImage NODE 13]: {load_image_inputs}")
+                else:
+                    print("[WARNING]: LoadImage node 13 not found in workflow!")
 
                 # Get denoise value (higher = more change from reference, lower = more similar)
-                denoise = job_input.get(
-                    "denoise", 0.6
-                )  # Default 0.6 = 60% new, 40% reference
+                denoise = job_input.get("denoise", 0.6)  # Default 0.6 = 60% new, 40% reference
                 img2img_workflow["10"]["inputs"]["denoise"] = denoise
-                print(f"Using denoise: {denoise} (lower = more similar to reference)")
+                print(f"\n[STEP 4] Setting denoise: {denoise} (lower = more similar to reference)")
+                print(f"[KSampler NODE 10 inputs]: {img2img_workflow['10']['inputs']}")
 
                 # Generate images using extracted scene config + img2img
+                print("\n[STEP 5] Generating images...")
                 for i in range(num_images):
                     prompt_data = build_prompt_from_extracted_scene(
                         item_name, item_description, extracted_scene, i
                     )
                     positive_prompt = prompt_data["prompt"]
-                    print(f"Built prompt: {positive_prompt[:200]}...")
+                    print(f"\n[IMAGE {i+1}/{num_images}]")
+                    print(f"[FULL PROMPT]: {positive_prompt}")
 
                     seed = base_seed if (i == 0 and base_seed is not None) else None
 
-                    print(f"Generating img2img variation {i + 1}/{num_images}")
+                    print(f"[GENERATING]: img2img variation {i + 1}/{num_images}, seed={seed}")
                     result = generate_single_image(
                         img2img_workflow, positive_prompt, negative_prompt, seed
                     )
+                    print(f"[GENERATED]: seed={result.get('seed')}, has_image={bool(result.get('image_base64'))}")
 
                     result["camera_angle"] = prompt_data.get("camera_angle", "")
                     result["variation_index"] = i
@@ -596,6 +646,10 @@ def handler(event):
                     result["denoise"] = denoise
                     results.append(result)
 
+                print("\n" + "=" * 60)
+                print("=== REFERENCE MODE COMPLETE ===")
+                print("=" * 60)
+                
                 # Build response with extracted scene info
                 response = {
                     "images": results,
@@ -613,7 +667,7 @@ def handler(event):
                 if save_scene_as:
                     response["scene_id"] = save_scene_as
                     response["save_scene_as"] = save_scene_as
-                    print(f"Scene can be saved as: {save_scene_as}")
+                    print(f"[SCENE SAVED AS]: {save_scene_as}")
 
             except Exception as e:
                 print(f"Scene extraction failed: {e}")

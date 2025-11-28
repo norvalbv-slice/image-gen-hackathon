@@ -17,7 +17,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                   RUNPOD SERVERLESS ENDPOINT                    │
 │  Endpoint ID: mjiwr7uipx2nbs                                    │
-│  Image: benjithegreat/comfyui-flux2:fp8-v7                      │
+│  Image: benjithegreat/comfyui-flux2:fp8-v9                      │
 │  GPU: NVIDIA A100 80GB                                          │
 │                                                                 │
 │  ComfyUI + Flux 2.0 FP8 → Returns base64 PNG images            │
@@ -32,11 +32,13 @@ comfyui/
 ├── workflow.json        # ComfyUI node graph for Flux 2.0
 ├── scenes.json          # Scene configurations (6 themes, 4 variations each)
 ├── templates.json       # Food category prompt templates
+├── scene_extractor.py   # GPT-5.1 reference image analysis
 ├── llm_judge.py         # GPT-4V/Claude image evaluation
 ├── Dockerfile.slim      # Slim Docker image (~2GB, models downloaded at runtime)
 ├── build.sh             # Build Docker image
 ├── push.sh              # Push to Docker Hub
-└── test_fp8_endpoint.sh # CLI to test the endpoint
+├── test_fp8_endpoint.sh # CLI to test scene-based generation
+└── test_reference.sh    # CLI to test reference image extraction
 ```
 
 ## 🚀 Quick Start - Testing the Endpoint
@@ -74,6 +76,77 @@ Each scene generates **4 variations** with different angles:
 - 45-degree angle
 - Eye-level shot
 - Macro close-up
+
+## 📸 Reference Image Scene Extraction
+
+**NEW!** Instead of using pre-defined scenes, upload an existing menu photo and GPT-5.1 will analyze it to create a custom scene:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Shop's Existing Photo                         │
+│  (e.g., their best pizza photo)                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        GPT-5.1 Vision                            │
+│  Extracts: background, lighting, mood, props, composition       │
+│  → Returns custom scene config                                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Generate New Images                           │
+│  "garlic bread" + extracted scene = consistent style!           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Test Reference Mode
+
+```bash
+# Analyze an existing photo and generate matching images
+./test_reference.sh your_pizza_photo.jpg 4
+```
+
+### API Usage
+
+```bash
+# Convert image to base64
+REFERENCE=$(base64 -i your_photo.jpg | tr -d '\n')
+
+curl -X POST "https://api.runpod.ai/v2/mjiwr7uipx2nbs/run" \
+  -H "Authorization: Bearer $RUNPOD_API_KEY" \
+  -d '{
+    "input": {
+      "item_name": "garlic bread",
+      "item_description": "buttery with herbs",
+      "reference_image": "'"$REFERENCE"'",
+      "extract_scene": true,
+      "save_scene_as": "my_shop_style",
+      "num_images": 4
+    }
+  }'
+```
+
+### Response with Extracted Scene
+
+```json
+{
+  "status": "success",
+  "mode": "reference_extraction",
+  "extracted_scene": {
+    "name": "Warm Italian Trattoria",
+    "background": "rustic dark wooden table, terracotta wall",
+    "lighting": "warm side lighting from left, soft shadows",
+    "mood": "cozy, authentic, inviting",
+    "props": "white linen napkin, scattered herbs"
+  },
+  "scene_id": "my_shop_style",
+  "images": [...]
+}
+```
+
+**Use case:** Shop uploads their best existing photo → all new generated images match that style!
 
 ## 🐳 Why Docker Slim?
 
@@ -156,7 +229,7 @@ vim comfyui/workflow.json     # ComfyUI node graph
 
 # 2. Build new Docker image
 cd comfyui
-./build.sh   # Creates benjithegreat/comfyui-flux2:fp8-v7
+./build.sh   # Creates benjithegreat/comfyui-flux2:fp8-v9
 
 # 3. Push to Docker Hub
 ./push.sh    # Pushes to Docker Hub
@@ -181,7 +254,7 @@ RunPod caches workers with FlashBoot. To force new code:
 
 - **Endpoint ID:** `mjiwr7uipx2nbs`
 - **Template ID:** `07hps30fle`
-- **Docker Image:** `benjithegreat/comfyui-flux2:fp8-v7`
+- **Docker Image:** `benjithegreat/comfyui-flux2:fp8-v9`
 - **GPU:** A100 80GB only (forced for consistent ~25s generation)
 
 ## 🤖 LLM as Judge

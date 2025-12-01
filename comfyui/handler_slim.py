@@ -537,6 +537,12 @@ def handler(event):
         # Scene-based generation for consistent shop themes with varied compositions
         scene = job_input.get("scene")  # e.g., "rustic_italian", "modern_minimal", etc.
 
+        # Optional: specify which variation/angle to use (0-3)
+        # Allows frontend to request specific angles when generating one image at a time
+        requested_variation_index = job_input.get(
+            "variation_index"
+        )  # 0=overhead, 1=45°, 2=closeup, 3=side
+
         # Reference image scene extraction (GPT-4V analyzes image to create scene config)
         reference_image = job_input.get("reference_image")  # Single base64 image
         extract_scene = job_input.get("extract_scene", False)  # Analyze with GPT-4V
@@ -553,12 +559,19 @@ def handler(event):
         print("=" * 60)
         print("=== INCOMING PARAMETERS ===")
         print(f"  item_name: {item_name}")
-        print(f"  item_description: {item_description[:50] if item_description else 'None'}...")
+        print(
+            f"  item_description: {item_description[:50] if item_description else 'None'}..."
+        )
         print(f"  num_images: {num_images}")
         print(f"  scene: {scene}")
-        print(f"  reference_image: {'Yes (' + str(len(reference_image)) + ' chars)' if reference_image else 'None'}")
+        print(
+            f"  reference_image: {'Yes (' + str(len(reference_image)) + ' chars)' if reference_image else 'None'}"
+        )
         print(f"  extract_scene: {extract_scene}")
-        print(f"  openai_api_key: {'Set (' + openai_api_key[:10] + '...)' if openai_api_key else 'NOT SET'}")
+        print(f"  variation_index: {requested_variation_index}")
+        print(
+            f"  openai_api_key: {'Set (' + openai_api_key[:10] + '...)' if openai_api_key else 'NOT SET'}"
+        )
         print(f"  save_scene_as: {save_scene_as}")
         print("=" * 60)
 
@@ -587,7 +600,9 @@ def handler(event):
         # DEBUG: Check condition values
         print(f"[CONDITION CHECK] reference_image truthy: {bool(reference_image)}")
         print(f"[CONDITION CHECK] extract_scene truthy: {bool(extract_scene)}")
-        print(f"[CONDITION CHECK] Will enter reference mode: {bool(reference_image and extract_scene)}")
+        print(
+            f"[CONDITION CHECK] Will enter reference mode: {bool(reference_image and extract_scene)}"
+        )
 
         # REFERENCE IMAGE MODE: Extract scene + generate with same style
         if reference_image and extract_scene:
@@ -621,34 +636,48 @@ def handler(event):
                 # Step 2: Detect if we should use img2img or text2img
                 # img2img preserves food SHAPE - only use for same food type (pizza -> pizza)
                 # text2img with scene settings - use for different food (pizza -> pasta)
-                ref_food_type = extracted_scene.get("detected_food_type", "pizza")  # Default to pizza
-                target_food_type = item_type or detect_item_type(item_name, item_description)
-                
+                ref_food_type = extracted_scene.get(
+                    "detected_food_type", "pizza"
+                )  # Default to pizza
+                target_food_type = item_type or detect_item_type(
+                    item_name, item_description
+                )
+
                 # Check if food types are compatible for img2img
                 # Pizza variants can use img2img, but pasta/salad/etc should use text2img
-                use_img2img = job_input.get("use_img2img", None)  # Allow manual override
+                use_img2img = job_input.get(
+                    "use_img2img", None
+                )  # Allow manual override
                 if use_img2img is None:
                     # Auto-detect: only use img2img if same food category
                     pizza_types = ["pizza", "flatbread", "focaccia"]
-                    ref_is_pizza = ref_food_type.lower() in pizza_types or "pizza" in ref_food_type.lower()
-                    target_is_pizza = target_food_type.lower() in pizza_types or "pizza" in item_name.lower()
+                    ref_is_pizza = (
+                        ref_food_type.lower() in pizza_types
+                        or "pizza" in ref_food_type.lower()
+                    )
+                    target_is_pizza = (
+                        target_food_type.lower() in pizza_types
+                        or "pizza" in item_name.lower()
+                    )
                     use_img2img = ref_is_pizza and target_is_pizza
-                
+
                 print(f"\n[STEP 2] Food type detection:")
                 print(f"  Reference food type: {ref_food_type}")
                 print(f"  Target food type: {target_food_type}")
                 print(f"  Use img2img (preserve shape): {use_img2img}")
-                
+
                 if use_img2img:
                     # img2img mode: Use reference as latent starting point (for same food type)
-                    print("\n[STEP 3] Using IMG2IMG workflow (same food type - preserving composition)")
+                    print(
+                        "\n[STEP 3] Using IMG2IMG workflow (same food type - preserving composition)"
+                    )
                     ref_path = save_reference_for_workflow(reference_image)
                     print(f"[REFERENCE SAVED TO]: {ref_path}")
-                    
+
                     if os.path.exists(ref_path):
                         file_size = os.path.getsize(ref_path)
                         print(f"[REFERENCE FILE EXISTS]: Yes, size={file_size} bytes")
-                    
+
                     selected_workflow = load_workflow_img2img()
                     denoise = job_input.get("denoise", 0.6)
                     selected_workflow["10"]["inputs"]["denoise"] = denoise
@@ -656,7 +685,9 @@ def handler(event):
                     generation_mode = "reference_img2img"
                 else:
                     # text2img mode: Use extracted scene settings but generate fresh (for different food)
-                    print("\n[STEP 3] Using TEXT2IMG workflow (different food type - fresh generation with scene style)")
+                    print(
+                        "\n[STEP 3] Using TEXT2IMG workflow (different food type - fresh generation with scene style)"
+                    )
                     selected_workflow = load_workflow()
                     denoise = 1.0  # Full generation, no reference influence on shape
                     generation_mode = "reference_scene_only"
@@ -666,12 +697,22 @@ def handler(event):
                 # img2img: Don't vary angles (preserve reference composition)
                 # text2img: Vary angles (fresh generation can have different compositions)
                 apply_variations = not use_img2img
-                
+
                 for i in range(num_images):
+                    # Use requested variation_index if provided, otherwise use loop index
+                    actual_variation_index = (
+                        requested_variation_index
+                        if requested_variation_index is not None
+                        else i
+                    )
+
                     prompt_data = build_prompt_from_extracted_scene(
-                        item_name, item_description, extracted_scene, i,
+                        item_name,
+                        item_description,
+                        extracted_scene,
+                        actual_variation_index,
                         target_food_type=target_food_type,
-                        apply_angle_variations=apply_variations
+                        apply_angle_variations=apply_variations,
                     )
                     positive_prompt = prompt_data["prompt"]
                     print(f"\n[IMAGE {i + 1}/{num_images}]")
@@ -689,8 +730,11 @@ def handler(event):
                         f"[GENERATED]: seed={result.get('seed')}, has_image={bool(result.get('image_base64'))}"
                     )
 
+                    result["variation"] = prompt_data[
+                        "variation"
+                    ]  # Include angle/focus/depth
                     result["camera_angle"] = prompt_data.get("camera_angle", "")
-                    result["variation_index"] = i
+                    result["variation_index"] = actual_variation_index
                     result["prompt"] = positive_prompt
                     result["denoise"] = denoise
                     results.append(result)
@@ -721,7 +765,9 @@ def handler(event):
 
                 # Add available scenes and return early to prevent legacy mode from overwriting
                 response["available_scenes"] = get_available_scenes()
-                print(f"Generated {num_images} image(s) successfully via reference mode")
+                print(
+                    f"Generated {num_images} image(s) successfully via reference mode"
+                )
                 return response
 
             except Exception as e:
@@ -735,17 +781,32 @@ def handler(event):
 
         # SCENE-BASED GENERATION: Different prompts for each image (meaningful variety)
         if not extracted_scene and scene:
-            print(f"Using scene: {scene} with {num_images} variations")
+            if requested_variation_index is not None:
+                print(
+                    f"Using scene: {scene} with SPECIFIC variation_index={requested_variation_index}"
+                )
+            else:
+                print(f"Using scene: {scene} with {num_images} variations")
 
             for i in range(num_images):
+                # Use requested variation_index if provided, otherwise use loop index
+                # This allows frontend to request specific angles (e.g., variation_index=2 for closeup)
+                actual_variation_index = (
+                    requested_variation_index
+                    if requested_variation_index is not None
+                    else i
+                )
+
                 # Build unique prompt for each variation
-                prompt_data = build_scene_prompt(item_name, item_description, scene, i)
+                prompt_data = build_scene_prompt(
+                    item_name, item_description, scene, actual_variation_index
+                )
                 positive_prompt = prompt_data["prompt"]
 
                 seed = base_seed if (i == 0 and base_seed is not None) else None
 
                 print(
-                    f"Generating variation {i + 1}/{num_images}: {prompt_data['variation']}"
+                    f"Generating image {i + 1}/{num_images} with variation_index={actual_variation_index}: {prompt_data['variation']}"
                 )
                 result = generate_single_image(
                     workflow, positive_prompt, negative_prompt, seed
@@ -753,7 +814,7 @@ def handler(event):
 
                 # Add variation metadata to result
                 result["variation"] = prompt_data["variation"]
-                result["variation_index"] = i
+                result["variation_index"] = actual_variation_index
                 result["prompt"] = positive_prompt
                 results.append(result)
 

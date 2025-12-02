@@ -693,9 +693,9 @@ def handler(event):
                     print(f"[MODE]: Text-to-image with extracted scene styling")
 
                 # Generate images using extracted scene config
-                # img2img: Don't vary angles (preserve reference composition)
-                # text2img: Vary angles (fresh generation can have different compositions)
-                apply_variations = not use_img2img
+                # Always apply angle variations - even img2img should get different angles
+                # The reference provides scene/style, but we still want varied compositions
+                apply_variations = True
 
                 for i in range(num_images):
                     # Use requested variation_index if provided, otherwise use loop index

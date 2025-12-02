@@ -532,7 +532,6 @@ def handler(event):
         num_images = min(
             max(job_input.get("num_images", 1), 1), 4
         )  # Clamp 1-4 (max variations per scene)
-        auto_select = job_input.get("auto_select", False)
 
         # Scene-based generation for consistent shop themes with varied compositions
         scene = job_input.get("scene")  # e.g., "rustic_italian", "modern_minimal", etc.
@@ -852,30 +851,6 @@ def handler(event):
                 "num_images": num_images,
                 "status": "success",
             }
-
-        # Apply LLM judge if requested (now more useful with varied images!)
-        if auto_select and num_images > 1:
-            try:
-                from llm_judge import judge_images
-
-                images_b64 = [r["image_base64"] for r in results]
-                judge_result = judge_images(images_b64, item_name)
-
-                response["judge_result"] = judge_result
-                response["best_image"] = results[judge_result["best_index"]]
-                response["best_index"] = judge_result["best_index"]
-
-                print(
-                    f"LLM Judge selected image {judge_result['best_index'] + 1}: {judge_result.get('reasoning', '')}"
-                )
-            except Exception as e:
-                print(f"LLM Judge failed: {e}")
-                response["judge_error"] = str(e)
-                response["best_image"] = results[0]
-                response["best_index"] = 0
-        elif num_images == 1:
-            response["best_image"] = results[0]
-            response["best_index"] = 0
 
         # Cleanup reference images
         if ref_paths:

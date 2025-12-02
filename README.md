@@ -46,7 +46,6 @@ comfyui/
 ├── scenes.json           # 6 pre-defined scenes with 4 variations each
 ├── templates.json        # Food category prompt templates
 ├── scene_extractor.py    # GPT-5.1 reference image analysis
-├── llm_judge.py          # GPT-5.1-mini/Claude for auto-selecting best image
 ├── Dockerfile.slim       # Slim Docker (~2GB, models download at runtime)
 ├── test_fp8_endpoint.sh  # Test scene-based generation
 └── test_reference.sh     # Test reference image mode
@@ -299,26 +298,6 @@ curl -X POST "https://api.runpod.ai/v2/hbvg2b5ucr59mx/run" \
     }
   }'
 ```
-
-## LLM as Judge
-
-When `auto_select: true`, we send all generated images to GPT-4V/Claude to pick the best one:
-
-```python
-# In handler_slim.py
-if auto_select and num_images > 1:
-    judge_result = judge_images(images_b64, item_name)
-    # Returns: { best_index: 2, reasoning: "..." }
-```
-
-**How it works:**
-1. All 4 variations sent to vision LLM
-2. LLM evaluates: appetizing appeal, realism, composition, lighting
-3. Returns best image index with reasoning
-
-**Cost:** ~$0.01-0.05 per evaluation
-
-**For hackathon demo:** Better to show all 4 and let owner choose (more impressive UX).
 
 ## Related Resources
 

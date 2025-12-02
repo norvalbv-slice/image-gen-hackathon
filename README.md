@@ -1,6 +1,6 @@
 # AI Menu Image Generation - ComfyUI + Flux 2.0 on RunPod
 
-> **Winter Hackathon 2025** - Single-click automation to give pizza shops a menu full of great-looking AI-generated images.
+> **Winter Hackathon 2025** - Single-click automation to give shops a menu full of great-looking AI-generated images.
 
 ## Architecture
 
@@ -19,7 +19,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                   RUNPOD SERVERLESS ENDPOINT                    │
 │  Endpoint ID: hbvg2b5ucr59mx                                    │
-│  Image: benjithegreat/comfyui-flux2:fp8-v13                     │
+│  Image: benjithegreat/comfyui-flux2:fp8-v24                     │
 │  GPU: NVIDIA A100 80GB                                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
@@ -90,22 +90,23 @@ Use pre-defined scenes (no OpenAI key required):
 ./test_fp8_endpoint.sh premium_upscale 4
 ```
 
-**Available Scenes:**
+**Available Scenes:** (work with ANY food type - pizza, pasta, salads, desserts, etc.)
 
 | Scene | Description | Best For |
 |-------|-------------|----------|
-| `rustic_italian` | Warm wood, brick oven, traditional | Classic pizzerias |
+| `rustic_italian` | Warm wood, traditional | Classic Italian restaurants |
 | `modern_minimal` | White marble, clean, Instagram-worthy | Modern cafes |
 | `cozy_homestyle` | Checkered tablecloth, family-style | Family restaurants |
 | `premium_upscale` | Dark slate, dramatic lighting | Fine dining |
 | `street_food` | Urban, energetic, food truck vibes | Casual/fast-casual |
 | `garden_fresh` | Natural light, organic, farm-to-table | Health-focused |
+| `industrial_craft` | Concrete, urban workshop aesthetic | Artisan/craft shops |
 
 Each scene generates **4 variations** with different angles:
-- Overhead flat lay
-- 45-degree angle
-- Eye-level shot
-- Macro close-up
+- `0` - Overhead flat lay
+- `1` - 45-degree angle
+- `2` - Close-up detail
+- `3` - Side/profile view
 
 ### Mode 2: Reference Image (Match Existing Style)
 
@@ -140,6 +141,35 @@ curl -X POST "https://api.runpod.ai/v2/hbvg2b5ucr59mx/run" \
   }'
 ```
 
+### Progressive Loading (Single Image with Specific Angle)
+
+For better UX, request images one at a time with `variation_index`:
+
+```bash
+# Request specific angle (0=overhead, 1=45°, 2=closeup, 3=side)
+curl -X POST "https://api.runpod.ai/v2/hbvg2b5ucr59mx/run" \
+  -H "Authorization: Bearer $RUNPOD_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "item_name": "onion rings",
+      "item_description": "crispy golden fried",
+      "scene": "street_food",
+      "num_images": 1,
+      "variation_index": 0
+    }
+  }'
+```
+
+| `variation_index` | Angle |
+|-------------------|-------|
+| 0 | overhead flat lay |
+| 1 | 45-degree hero angle |
+| 2 | close-up detail |
+| 3 | side/profile view |
+
+**Frontend can make 4 parallel requests** with `variation_index: 0, 1, 2, 3` - each returns in ~20s instead of waiting ~80s for all 4.
+
 ### Reference Image Request
 
 ```bash
@@ -166,25 +196,23 @@ curl -X POST "https://api.runpod.ai/v2/hbvg2b5ucr59mx/run" \
   "status": "COMPLETED",
   "output": {
     "status": "success",
-    "mode": "reference_img2img",
-    "scene_name": "Rustic Pizzeria Style",
-    "num_images": 4,
-    "denoise": 0.6,
-    "extracted_scene": {
-      "name": "Rustic Pizzeria Style",
-      "background": "whitewashed weathered wood planks",
-      "surface_object": "round rustic wooden serving board",
-      "props": "wooden pizza spatula on left side",
-      "lighting": "dramatic side lighting from left",
-      "camera_angle": "30-degree angle from front-left"
-    },
+    "scene": "rustic_italian",
+    "scene_name": "Rustic Italian",
+    "num_images": 1,
     "images": [
       {
         "image_base64": "iVBORw0KGgo...",
         "seed": 1234567890,
-        "prompt": "garlic bread with buttery herbs, ..."
+        "variation": {
+          "angle": "overhead flat lay shot",
+          "focus": "entire dish centered",
+          "depth": "sharp focus throughout"
+        },
+        "variation_index": 0,
+        "prompt": "onion rings with crispy golden fried, ..."
       }
-    ]
+    ],
+    "available_scenes": ["rustic_italian", "modern_minimal", "cozy_homestyle", "premium_upscale", "street_food", "garden_fresh", "industrial_craft"]
   }
 }
 ```
@@ -205,11 +233,8 @@ Controls how much of the reference image is preserved:
 We use a **slim Docker image** (~2GB) - models download on first run:
 
 ```bash
-# Build
-cd comfyui && docker build -f Dockerfile.slim -t benjithegreat/comfyui-flux2:fp8-v13 .
-
-# Push
-docker push benjithegreat/comfyui-flux2:fp8-v13
+# Build (IMPORTANT: use --platform for RunPod compatibility)
+cd comfyui && docker buildx build --platform linux/amd64 -f Dockerfile.slim -t benjithegreat/comfyui-flux2:fp8-v24 --push .
 
 # Update RunPod template (via MCP or dashboard)
 ```
@@ -217,7 +242,7 @@ docker push benjithegreat/comfyui-flux2:fp8-v13
 **Current deployment:**
 - Endpoint ID: `hbvg2b5ucr59mx`
 - Template ID: `07hps30fle`
-- Docker Image: `benjithegreat/comfyui-flux2:fp8-v13`
+- Docker Image: `benjithegreat/comfyui-flux2:fp8-v24`
 
 ## Important Notes
 

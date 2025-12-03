@@ -103,5 +103,36 @@
       {"angle": "low industrial eye-level", "focus": "side view highlighting texture", "depth": "strong subject isolation"},
       {"angle": "tight macro texture shot", "focus": "surface texture and ingredient detail", "depth": "extremely shallow macro depth"}
     ]
+  },
+  "pizza_mia": {
+    "name": "Pizza Mia",
+    "description": "Vibrant, casual outdoor dining with high-contrast colors",
+    "background": "bright yellow painted wooden slat table with visible gaps and surface imperfections",
+    "lighting": "bright, even daylight from directly overhead, creating minimal shadows",
+    "mood": "sunny, cheerful, casual summer patio vibe",
+    "props": "glass parmesan and red pepper flake shakers with metal tops placed nearby",
+    "realism": "authentic casual food photography, realistic cheese browning and oil sheen, not overly polished, genuine outdoor dining look",
+    "variations": [
+      {
+        "angle": "direct overhead flat lay",
+        "focus": "centered whole pizza filling the frame",
+        "depth": "sharp edge-to-edge focus"
+      },
+      {
+        "angle": "high angle 60-degree view",
+        "focus": "center toppings with table texture background",
+        "depth": "slight depth falloff at table edges"
+      },
+      {
+        "angle": "close-up slice pull",
+        "focus": "texture of toppings and melted cheese",
+        "depth": "shallow depth of field on cheese strands"
+      },
+      {
+        "angle": "tilted playful composition",
+        "focus": "pizza off-center with shakers prominent",
+        "depth": "balanced focus on foreground elements"
+      }
+    ]
   }
 }

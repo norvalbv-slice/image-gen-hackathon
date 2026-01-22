@@ -1,0 +1,51 @@
+{
+  "pizza": {
+    "suffix": "bubbling golden mozzarella cheese, crispy charred crust edges with leopard spotting, on rustic dark wooden pizzeria table",
+    "background": "authentic Italian pizzeria atmosphere",
+    "lighting": "warm directional studio lighting from upper left creating soft appetizing shadows",
+    "camera": "shallow depth of field with sharp focus on toppings, 85mm lens, professional editorial food photography style"
+  },
+  "pasta": {
+    "suffix": "al dente pasta glistening with sauce, fresh herbs garnish, steam rising gently",
+    "background": "elegant trattoria setting with warm ambient lighting",
+    "lighting": "soft diffused lighting from above, subtle rim light on steam",
+    "camera": "45-degree angle, shallow depth of field, 100mm macro lens"
+  },
+  "salad": {
+    "suffix": "crisp fresh vegetables, vibrant colors, light dressing drizzle, fresh herbs",
+    "background": "clean white marble surface, natural daylight streaming in",
+    "lighting": "bright natural window light, soft shadows",
+    "camera": "overhead flat lay perspective, sharp focus throughout, 50mm lens"
+  },
+  "dessert": {
+    "suffix": "decadent presentation, perfect portion, elegant plating, subtle garnish",
+    "background": "sophisticated cafe atmosphere, soft bokeh background",
+    "lighting": "dramatic side lighting with gentle fill, highlighting textures",
+    "camera": "low angle hero shot, extremely shallow depth of field, 85mm lens"
+  },
+  "sandwich": {
+    "suffix": "fresh ingredients visible in cross-section, melted cheese pulling, crispy bread texture",
+    "background": "casual deli or cafe setting with rustic elements",
+    "lighting": "warm side lighting emphasizing layers and textures",
+    "camera": "eye-level angle, focus on filling, 50mm lens"
+  },
+  "appetizer": {
+    "suffix": "artful arrangement, fresh ingredients, appetizing presentation",
+    "background": "elegant restaurant table setting",
+    "lighting": "soft overhead lighting with accent lights",
+    "camera": "slight overhead angle, sharp focus on main elements, 85mm lens"
+  },
+  "drink": {
+    "suffix": "condensation on glass, ice cubes, fresh garnish, vibrant color",
+    "background": "bar or cafe setting with ambient lighting",
+    "lighting": "backlit to show liquid clarity, soft fill light",
+    "camera": "eye-level angle, shallow depth of field, 100mm lens"
+  },
+  "default": {
+    "suffix": "appetizing presentation, professional plating",
+    "background": "clean restaurant setting",
+    "lighting": "warm directional studio lighting creating soft shadows",
+    "camera": "shallow depth of field, professional food photography, 85mm lens"
+  }
+}
+

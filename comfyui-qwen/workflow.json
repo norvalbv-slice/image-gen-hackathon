@@ -40,7 +40,7 @@
   },
   "7": {
     "inputs": {
-      "text": "",
+      "text": "illustration, drawing, cartoon, CGI, 3D render, plastic texture, artificial, unrealistic, oversaturated, blurry, low quality, smooth plastic surface, shiny fake food, digital art, anime, painting",
       "clip": ["4", 0]
     },
     "class_type": "CLIPTextEncode",
@@ -63,9 +63,9 @@
     "inputs": {
       "seed": 42,
       "steps": 30,
-      "cfg": 3.0,
-      "sampler_name": "euler",
-      "scheduler": "simple",
+      "cfg": 5.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
       "denoise": 1,
       "model": ["3", 0],
       "positive": ["6", 0],

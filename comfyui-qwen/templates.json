@@ -1,51 +1,56 @@
 {
   "pizza": {
-    "suffix": "bubbling golden mozzarella cheese, crispy charred crust edges with leopard spotting, on rustic dark wooden pizzeria table",
-    "background": "authentic Italian pizzeria atmosphere",
-    "lighting": "warm directional studio lighting from upper left creating soft appetizing shadows",
-    "camera": "shallow depth of field with sharp focus on toppings, 85mm lens, professional editorial food photography style"
+    "suffix": "bubbling golden mozzarella with brown blistered spots and stretchy cheese pull, crispy charred crust with irregular leopard spotting and flour dusting, rustic dark wooden pizzeria table",
+    "background": "authentic Italian pizzeria atmosphere with natural ambient elements",
+    "lighting": "warm directional studio lighting from upper left creating soft natural shadows",
+    "camera": "shallow depth of field with sharp focus on toppings, 85mm lens, professional DSLR editorial food photography"
   },
   "pasta": {
-    "suffix": "al dente pasta glistening with sauce, fresh herbs garnish, steam rising gently",
-    "background": "elegant trattoria setting with warm ambient lighting",
-    "lighting": "soft diffused lighting from above, subtle rim light on steam",
-    "camera": "45-degree angle, shallow depth of field, 100mm macro lens"
+    "suffix": "al dente pasta glistening with sauce coating each strand, fresh herbs with visible leaf veins and natural wilting, wisps of steam rising",
+    "background": "elegant trattoria setting with warm ambient lighting and natural wood textures",
+    "lighting": "soft diffused lighting from above with subtle rim light on steam",
+    "camera": "45-degree angle, shallow depth of field, 100mm macro lens, professional DSLR food photography"
   },
   "salad": {
-    "suffix": "crisp fresh vegetables, vibrant colors, light dressing drizzle, fresh herbs",
-    "background": "clean white marble surface, natural daylight streaming in",
-    "lighting": "bright natural window light, soft shadows",
-    "camera": "overhead flat lay perspective, sharp focus throughout, 50mm lens"
+    "suffix": "crisp fresh vegetables with natural water droplets, vibrant organic colors with natural variations, light dressing drizzle pooling naturally, fresh herbs with visible veins",
+    "background": "clean white marble surface with subtle natural grey veining, natural daylight",
+    "lighting": "bright natural window light creating soft organic shadows",
+    "camera": "overhead flat lay perspective, sharp focus throughout, 50mm lens, editorial food photography"
   },
   "dessert": {
-    "suffix": "decadent presentation, perfect portion, elegant plating, subtle garnish",
-    "background": "sophisticated cafe atmosphere, soft bokeh background",
-    "lighting": "dramatic side lighting with gentle fill, highlighting textures",
-    "camera": "low angle hero shot, extremely shallow depth of field, 85mm lens"
+    "suffix": "rich decadent textures with natural surface imperfections, elegant artisan plating, subtle garnish with organic details",
+    "background": "sophisticated cafe atmosphere with soft natural bokeh background",
+    "lighting": "dramatic side lighting with gentle fill highlighting natural textures and imperfections",
+    "camera": "low angle hero shot, extremely shallow depth of field, 85mm lens, professional DSLR food photography"
   },
   "sandwich": {
-    "suffix": "fresh ingredients visible in cross-section, melted cheese pulling, crispy bread texture",
-    "background": "casual deli or cafe setting with rustic elements",
-    "lighting": "warm side lighting emphasizing layers and textures",
-    "camera": "eye-level angle, focus on filling, 50mm lens"
+    "suffix": "fresh ingredients visible in cross-section with natural colors, melted cheese with realistic pull and stretch, crusty bread with irregular air pockets and crispy flaky texture",
+    "background": "casual deli or cafe setting with rustic natural wood elements",
+    "lighting": "warm side lighting emphasizing layers and natural textures",
+    "camera": "eye-level angle, focus on filling details, 50mm lens, professional food photography"
   },
   "appetizer": {
-    "suffix": "artful arrangement, fresh ingredients, appetizing presentation",
-    "background": "elegant restaurant table setting",
-    "lighting": "soft overhead lighting with accent lights",
-    "camera": "slight overhead angle, sharp focus on main elements, 85mm lens"
+    "suffix": "artful arrangement with natural ingredient placement, fresh components with organic textures and visible details, appetizing authentic presentation",
+    "background": "elegant restaurant table setting with natural materials",
+    "lighting": "soft overhead lighting with subtle accent lights creating natural shadows",
+    "camera": "slight overhead angle, sharp focus on main elements, 85mm lens, editorial food photography"
   },
   "drink": {
-    "suffix": "condensation on glass, ice cubes, fresh garnish, vibrant color",
-    "background": "bar or cafe setting with ambient lighting",
-    "lighting": "backlit to show liquid clarity, soft fill light",
-    "camera": "eye-level angle, shallow depth of field, 100mm lens"
+    "suffix": "natural condensation droplets on glass, ice cubes with realistic clarity and melting edges, fresh garnish with organic imperfections, vibrant natural liquid color",
+    "background": "bar or cafe setting with natural ambient lighting and bokeh",
+    "lighting": "backlit to show liquid clarity with soft natural fill light",
+    "camera": "eye-level angle, shallow depth of field, 100mm lens, professional beverage photography"
+  },
+  "soup": {
+    "suffix": "rich broth with natural surface oils and herb flecks, steam wisps rising naturally, fresh garnish with visible organic textures, authentic bowl presentation",
+    "background": "cozy restaurant or home setting with warm natural atmosphere",
+    "lighting": "warm overhead lighting with subtle rim light on steam wisps",
+    "camera": "45-degree angle, shallow depth of field, 85mm lens, professional DSLR food photography"
   },
   "default": {
-    "suffix": "appetizing presentation, professional plating",
-    "background": "clean restaurant setting",
-    "lighting": "warm directional studio lighting creating soft shadows",
-    "camera": "shallow depth of field, professional food photography, 85mm lens"
+    "suffix": "appetizing authentic presentation with natural textures and organic imperfections, professional artisan plating",
+    "background": "clean restaurant setting with natural ambient elements",
+    "lighting": "warm directional studio lighting creating soft natural shadows",
+    "camera": "shallow depth of field, 85mm lens, professional DSLR editorial food photography"
   }
 }
-

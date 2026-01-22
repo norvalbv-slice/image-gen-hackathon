@@ -642,23 +642,10 @@ def handler(event):
                     item_name, item_description
                 )
 
-                # Check if food types are compatible for img2img
-                # Pizza variants can use img2img, but pasta/salad/etc should use text2img
-                use_img2img = job_input.get(
-                    "use_img2img", None
-                )  # Allow manual override
-                if use_img2img is None:
-                    # Auto-detect: only use img2img if same food category
-                    pizza_types = ["pizza", "flatbread", "focaccia"]
-                    ref_is_pizza = (
-                        ref_food_type.lower() in pizza_types
-                        or "pizza" in ref_food_type.lower()
-                    )
-                    target_is_pizza = (
-                        target_food_type.lower() in pizza_types
-                        or "pizza" in item_name.lower()
-                    )
-                    use_img2img = ref_is_pizza and target_is_pizza
+                # Determine whether to use img2img (preserves reference aesthetic)
+                # Default: always use img2img when reference provided - user wants that style
+                # Override via use_img2img param if specific behavior needed
+                use_img2img = job_input.get("use_img2img", True)
 
                 print(f"\n[STEP 2] Food type detection:")
                 print(f"  Reference food type: {ref_food_type}")

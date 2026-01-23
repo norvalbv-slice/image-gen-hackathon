@@ -40,7 +40,7 @@
   },
   "7": {
     "inputs": {
-      "text": "illustration, drawing, cartoon, CGI, 3D render, plastic texture, artificial, unrealistic, oversaturated, blurry, low quality, smooth plastic surface, shiny fake food, digital art, anime, painting",
+      "text": "((person)), ((people)), ((human)), ((baby)), ((child)), ((infant)), ((toddler)), ((hands)), ((fingers)), ((face)), ((body)), ((portrait)), ((figure)), man, woman, boy, girl, arm, leg, skin, illustration, drawing, cartoon, CGI, 3D render, plastic, artificial, blurry, low quality, digital art, anime, painting, vignette, high contrast, color grading, text, watermark, logo",
       "clip": ["4", 0]
     },
     "class_type": "CLIPTextEncode",
@@ -63,9 +63,9 @@
     "inputs": {
       "seed": 42,
       "steps": 30,
-      "cfg": 5.0,
-      "sampler_name": "dpmpp_2m",
-      "scheduler": "karras",
+      "cfg": 3.5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
       "denoise": 1,
       "model": ["3", 0],
       "positive": ["6", 0],

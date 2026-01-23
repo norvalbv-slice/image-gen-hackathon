@@ -43,7 +43,6 @@ DIFFUSION_PATH = f"{COMFYUI_PATH}/models/diffusion_models"
 VAE_PATH = f"{COMFYUI_PATH}/models/vae"
 TEXT_ENCODER_PATH = f"{COMFYUI_PATH}/models/text_encoders"
 
-
 def ensure_models_downloaded():
     """Download Qwen-Image-2512 official safetensors models using huggingface_hub"""
     diffusion_file = f"{DIFFUSION_PATH}/qwen_image_2512_fp8_e4m3fn.safetensors"
@@ -215,7 +214,11 @@ def build_scene_prompt(
     else:
         variation = {"angle": "overhead", "focus": "centered", "depth": "sharp focus"}
 
+    # Food-context prefix to bias model interpretation toward food photography
+    food_context = "professional food photography, food dish only, close-up of plated food"
+
     prompt_parts = [
+        food_context,
         f"{item_name} with {item_description}",
         scene.get(
             "realism",
@@ -288,7 +291,7 @@ def detect_item_type(item_name: str, item_description: str) -> str:
 def build_prompt(
     item_name: str, item_description: str, item_type: str = None, templates: dict = None
 ) -> str:
-    """Build a complete prompt using templates."""
+    """Build a complete prompt using templates with food-context prefix."""
     if templates is None:
         templates = load_templates()
 
@@ -297,7 +300,11 @@ def build_prompt(
 
     template = templates.get(item_type, templates.get("default", {}))
 
+    # Food-context prefix to bias model interpretation toward food photography
+    food_context = "professional food photography, food dish only, close-up of plated food"
+
     parts = [
+        food_context,
         f"{item_name} with {item_description}",
         template.get("suffix", ""),
         template.get("background", ""),
@@ -494,6 +501,7 @@ def handler(event):
         workflow = load_workflow()
         templates = load_templates()
 
+        # Get input parameters
         item_name = job_input.get("item_name", "pepperoni pizza")
         item_description = job_input.get("item_description", "classic toppings")
         item_type = job_input.get("item_type")
@@ -550,10 +558,72 @@ def handler(event):
         print(f"[CONDITION CHECK] reference_image truthy: {bool(reference_image)}")
         print(f"[CONDITION CHECK] extract_scene truthy: {bool(extract_scene)}")
         print(
-            f"[CONDITION CHECK] Will enter reference mode: {bool(reference_image and extract_scene)}"
+            f"[CONDITION CHECK] Will enter reference mode: {bool(reference_image)}"
         )
 
-        # REFERENCE IMAGE MODE
+        # SIMPLE IMG2IMG MODE (reference image without GPT extraction)
+        if reference_image and not extract_scene:
+            print("=" * 60)
+            print("=== SIMPLE IMG2IMG MODE (no GPT extraction) ===")
+            print("=" * 60)
+
+            ref_path = save_reference_for_workflow(reference_image)
+            print(f"[REFERENCE SAVED TO]: {ref_path}")
+
+            selected_workflow = load_workflow_img2img()
+            denoise = job_input.get("denoise", 0.35)
+            selected_workflow["10"]["inputs"]["denoise"] = denoise
+            print(f"[DENOISE]: {denoise} (lower = more similar to reference)")
+
+            for i in range(num_images):
+                actual_variation_index = (
+                    requested_variation_index
+                    if requested_variation_index is not None
+                    else i
+                )
+
+                if scene:
+                    prompt_data = build_scene_prompt(
+                        item_name, item_description, scene, actual_variation_index
+                    )
+                    positive_prompt = prompt_data["prompt"]
+                    variation = prompt_data["variation"]
+                else:
+                    positive_prompt = build_prompt(item_name, item_description, item_type, templates)
+                    variation = {"angle": "default", "focus": "centered", "depth": "sharp"}
+
+                seed = base_seed if (i == 0 and base_seed is not None) else None
+
+                print(f"\n[IMAGE {i + 1}/{num_images}]")
+                print(f"[PROMPT]: {positive_prompt[:200]}...")
+                print(f"[GENERATING]: img2img variation {i + 1}/{num_images}")
+
+                result = generate_single_image(
+                    selected_workflow, positive_prompt, negative_prompt, seed
+                )
+
+                result["variation"] = variation
+                result["variation_index"] = actual_variation_index
+                result["prompt"] = positive_prompt
+                result["denoise"] = denoise
+                results.append(result)
+
+            response = {
+                "images": results,
+                "scene": scene,
+                "scene_name": load_scenes().get(scene, {}).get("name", scene) if scene else "Custom",
+                "item_type": item_type or detect_item_type(item_name, item_description),
+                "num_images": num_images,
+                "denoise": denoise,
+                "status": "success",
+                "mode": "img2img_simple",
+                "model": "qwen-image-2512-Q8",
+            }
+            response["available_scenes"] = get_available_scenes()
+            print(f"Generated {num_images} image(s) successfully via simple img2img mode")
+            return response
+
+        # REFERENCE IMAGE MODE WITH GPT EXTRACTION
         if reference_image and extract_scene:
             print("=" * 60)
             print("=== REFERENCE IMAGE MODE ACTIVATED ===")
@@ -605,7 +675,7 @@ def handler(event):
                         print(f"[REFERENCE FILE EXISTS]: Yes, size={file_size} bytes")
 
                     selected_workflow = load_workflow_img2img()
-                    denoise = job_input.get("denoise", 0.6)
+                    denoise = job_input.get("denoise", 0.35)
                     selected_workflow["10"]["inputs"]["denoise"] = denoise
                     print(f"[DENOISE]: {denoise} (lower = more similar to reference)")
                     generation_mode = "reference_img2img"

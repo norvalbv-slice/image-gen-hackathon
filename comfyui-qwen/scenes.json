@@ -5,7 +5,7 @@
     "background": "weathered dark wooden table with scattered flour dusting and natural wood grain texture",
     "lighting": "warm golden ambient lighting from vintage pendant lamps casting soft natural shadows",
     "mood": "cozy authentic Italian trattoria atmosphere",
-    "props": "scattered fresh basil leaves with visible leaf veins and natural wilting edges, rustic olive oil bottle nearby",
+    "props": "scattered small fresh garnish with visible natural details and organic edges, rustic olive oil bottle nearby",
     "realism": "professional DSLR food photography, authentic handmade appearance with natural irregularities, matte organic textures not shiny or plastic, visible natural imperfections on herbs and ingredients, real food photography not CGI or 3D render",
     "variations": [
       {"angle": "overhead flat lay shot", "focus": "entire dish centered", "depth": "sharp focus throughout"},
@@ -50,7 +50,7 @@
     "background": "dark natural slate or black stone surface with elegant texture",
     "lighting": "dramatic directional spotlight with deep natural shadows",
     "mood": "sophisticated fine dining premium artisan quality",
-    "props": "fresh microgreens garnish with visible organic details and natural imperfections, artisan presentation",
+    "props": "a small amount of fresh microgreens garnish with visible organic details and natural imperfections, artisan presentation",
     "realism": "professional DSLR food photography, artisan handcrafted appearance with authentic textures, natural matte finish on ingredients, garnishes with visible leaf structure and organic imperfections, premium but genuinely real not CGI or artificial",
     "variations": [
       {"angle": "dramatic low angle hero shot", "focus": "dish as hero against dark moody background", "depth": "chiaroscuro lighting style"},
@@ -68,25 +68,25 @@
     "props": "kraft paper plates, casual rustic presentation, hints of busy environment",
     "realism": "professional DSLR food photography, authentic street food appearance with natural imperfections and organic textures, not polished or plastic looking, matte real food surfaces, genuine casual food photography",
     "variations": [
-      {"angle": "straight-on counter view", "focus": "dish ready to grab showing authentic appearance", "depth": "urban environment context"},
-      {"angle": "handheld POV angle", "focus": "food being held up", "depth": "authentic street food moment"},
-      {"angle": "dynamic 45-degree action shot", "focus": "fresh and ready with energy", "depth": "movement and energy"},
-      {"angle": "wide urban environment shot", "focus": "food in authentic street food context", "depth": "lifestyle storytelling"}
+      {"angle": "straight-on counter view", "focus": "dish on counter ready to serve", "depth": "urban environment context"},
+      {"angle": "overhead flat lay on kraft paper", "focus": "food centered on serving paper", "depth": "clean urban presentation"},
+      {"angle": "dynamic 45-degree angle", "focus": "fresh dish on metal surface", "depth": "energetic composition"},
+      {"angle": "close-up detail shot", "focus": "texture and toppings detail", "depth": "shallow depth highlighting ingredients"}
     ]
   },
   "garden_fresh": {
     "name": "Garden Fresh",
     "description": "Organic, farm-to-table, natural ingredients focus",
-    "background": "natural light wooden cutting board with fresh herbs and garden vegetables nearby",
+    "background": "natural light wooden cutting board with fresh garnishes and garden elements nearby",
     "lighting": "soft natural sunlight with gentle outdoor garden atmosphere shadows",
     "mood": "fresh healthy organic farm-to-table feel authentic and natural",
-    "props": "fresh tomatoes on vine with natural imperfections, living herbs with visible leaf veins and natural variations, scattered organic ingredients",
-    "realism": "professional DSLR food photography, organic natural appearance with real food imperfections, authentic matte textures on leaves and vegetables, herbs with visible veins and natural wilting edges, natural ingredients not plastic or CGI, farm-fresh authentic photography",
+    "props": "fresh tomatoes on vine with natural imperfections, living herbs with visible leaf veins and natural variations, scattered natural elements",
+    "realism": "professional DSLR food photography, organic natural appearance with real food imperfections, authentic matte textures on leaves and vegetables with visible natural details and ingredients, not plastic or CGI, farm-fresh authentic photography",
     "variations": [
-      {"angle": "overhead ingredient spread shot", "focus": "dish surrounded by fresh natural ingredients", "depth": "recipe style photography"},
-      {"angle": "natural 45-degree garden table view", "focus": "outdoor dining with authentic food", "depth": "farm-to-table narrative"},
-      {"angle": "close-up on fresh ingredients", "focus": "ingredient quality and natural textures", "depth": "ingredient hero shot"},
-      {"angle": "wide rustic harvest spread", "focus": "abundance of fresh produce around dish", "depth": "harvest table composition"}
+      {"angle": "overhead spread shot", "focus": "dish surrounded by fresh natural elements", "depth": "recipe style photography"},
+      {"angle": "natural 45-degree garden table view", "focus": "outdoor dining setting", "depth": "farm-to-table narrative"},
+      {"angle": "close-up detail shot", "focus": "quality and natural textures", "depth": "hero shot"},
+      {"angle": "wide rustic spread", "focus": "abundance of fresh elements around dish", "depth": "harvest table composition"}
     ]
   },
   "industrial_craft": {
@@ -111,26 +111,26 @@
     "lighting": "bright, even daylight from directly overhead, creating minimal shadows",
     "mood": "sunny, cheerful, casual summer patio vibe",
     "props": "glass parmesan and red pepper flake shakers with metal tops placed nearby",
-    "realism": "professional DSLR food photography, authentic casual food photography, realistic cheese browning with natural bubbling and oil sheen, herbs with visible leaf veins and matte organic surface, not overly polished or plastic, genuine outdoor dining look",
+    "realism": "professional DSLR food photography, authentic casual food photography, natural browning with realistic texture and oil sheen, garnishes with visible organic details, not overly polished or plastic, genuine outdoor dining look",
     "variations": [
       {
         "angle": "direct overhead flat lay",
-        "focus": "centered whole pizza filling the frame",
+        "focus": "centered dish filling the frame",
         "depth": "sharp edge-to-edge focus"
       },
       {
         "angle": "high angle 60-degree view",
-        "focus": "center toppings with table texture background",
+        "focus": "center of dish with table texture background",
         "depth": "slight depth falloff at table edges"
       },
       {
-        "angle": "close-up slice pull",
-        "focus": "texture of toppings and melted cheese",
-        "depth": "shallow depth of field on cheese strands"
+        "angle": "close-up detail shot",
+        "focus": "texture and surface detail",
+        "depth": "shallow depth of field on surface"
       },
       {
         "angle": "tilted playful composition",
-        "focus": "pizza off-center with shakers prominent",
+        "focus": "dish off-center with condiments prominent",
         "depth": "balanced focus on foreground elements"
       }
     ]

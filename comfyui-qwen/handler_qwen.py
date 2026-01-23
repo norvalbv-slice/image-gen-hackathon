@@ -18,7 +18,10 @@ import glob
 import random
 import requests
 import shutil
+import sys
+import io
 from huggingface_hub import hf_hub_download
+from PIL import Image
 
 # Configuration
 COMFYUI_PATH = os.environ.get("COMFYUI_PATH", "/comfyui")
@@ -121,18 +124,32 @@ def load_workflow_img2img():
         return load_workflow()
 
 
-def save_reference_for_workflow(image_base64: str) -> str:
-    """Save reference image to ComfyUI input folder for img2img workflow."""
-    os.makedirs(INPUT_DIR, exist_ok=True)
+def save_reference_for_workflow(image_base64: str, max_size: int = 1024) -> str:
+    """Save reference image to ComfyUI input folder for img2img workflow.
 
-    # Save as reference.png (the workflow expects this filename)
+    Resizes large images to max_size to prevent VRAM issues during VAE encoding.
+    """
+    os.makedirs(INPUT_DIR, exist_ok=True)
     ref_path = os.path.join(INPUT_DIR, "reference.png")
 
     image_data = base64.b64decode(image_base64)
-    with open(ref_path, "wb") as f:
-        f.write(image_data)
 
-    print(f"Saved reference image to {ref_path} ({len(image_data)} bytes)")
+    # Load image and resize if needed
+    img = Image.open(io.BytesIO(image_data))
+    original_size = img.size
+
+    if max(img.size) > max_size:
+        img.thumbnail((max_size, max_size), Image.LANCZOS)
+        print(f"Resized reference image from {original_size} to {img.size}")
+
+    # Convert to RGB if needed (handles RGBA, palette modes)
+    if img.mode not in ('RGB', 'L'):
+        img = img.convert('RGB')
+
+    img.save(ref_path, "PNG")
+    file_size = os.path.getsize(ref_path)
+
+    print(f"Saved reference image to {ref_path} ({file_size} bytes, size={img.size})")
     return ref_path
 
 
@@ -845,10 +862,17 @@ def handler(event):
         print(f"Generated {num_images} image(s) successfully")
         return response
 
+    except TimeoutError as e:
+        print(f"TIMEOUT ERROR: {str(e)}")
+        print("Worker will exit to allow fresh restart...")
+        import traceback
+        traceback.print_exc()
+        # Exit the worker so RunPod spins up a fresh one
+        sys.exit(1)
+
     except Exception as e:
         print(f"Error: {str(e)}")
         import traceback
-
         traceback.print_exc()
         return {"error": str(e), "status": "failed"}
 

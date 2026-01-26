@@ -234,7 +234,12 @@ def build_scene_prompt(
     # Food-context prefix to bias model interpretation toward food photography
     food_context = "professional food photography, food dish only, close-up of plated food"
 
+    # CHANGED: Camera angle FIRST with emphasis markers for Qwen attention
+    # Triple parens = highest priority, double = high, single = medium
     prompt_parts = [
+        f"((({variation.get('angle', '')})))" if variation.get('angle') else "",
+        f"(({variation.get('focus', '')}))" if variation.get('focus') else "",
+        f"({variation.get('depth', '')})" if variation.get('depth') else "",
         food_context,
         f"{item_name} with {item_description}",
         scene.get(
@@ -245,9 +250,6 @@ def build_scene_prompt(
         scene.get("lighting", ""),
         scene.get("mood", ""),
         scene.get("props", ""),
-        variation.get("angle", ""),
-        variation.get("focus", ""),
-        variation.get("depth", ""),
         "editorial food photography, high resolution, appetizing, shot on Canon 5D Mark IV",
     ]
 
@@ -588,7 +590,7 @@ def handler(event):
             print(f"[REFERENCE SAVED TO]: {ref_path}")
 
             selected_workflow = load_workflow_img2img()
-            denoise = job_input.get("denoise", 0.35)
+            denoise = job_input.get("denoise", 0.50)
             selected_workflow["10"]["inputs"]["denoise"] = denoise
             print(f"[DENOISE]: {denoise} (lower = more similar to reference)")
 
@@ -609,7 +611,11 @@ def handler(event):
                     positive_prompt = build_prompt(item_name, item_description, item_type, templates)
                     variation = {"angle": "default", "focus": "centered", "depth": "sharp"}
 
-                seed = base_seed if (i == 0 and base_seed is not None) else None
+                # Spread seeds to ensure visual difference between variations
+                if base_seed is not None:
+                    seed = base_seed + (i * 1000)
+                else:
+                    seed = random.randint(0, 2**32 - 1)
 
                 print(f"\n[IMAGE {i + 1}/{num_images}]")
                 print(f"[PROMPT]: {positive_prompt[:200]}...")
@@ -692,7 +698,7 @@ def handler(event):
                         print(f"[REFERENCE FILE EXISTS]: Yes, size={file_size} bytes")
 
                     selected_workflow = load_workflow_img2img()
-                    denoise = job_input.get("denoise", 0.35)
+                    denoise = job_input.get("denoise", 0.50)
                     selected_workflow["10"]["inputs"]["denoise"] = denoise
                     print(f"[DENOISE]: {denoise} (lower = more similar to reference)")
                     generation_mode = "reference_img2img"
@@ -726,7 +732,11 @@ def handler(event):
                     print(f"\n[IMAGE {i + 1}/{num_images}]")
                     print(f"[FULL PROMPT]: {positive_prompt}")
 
-                    seed = base_seed if (i == 0 and base_seed is not None) else None
+                    # Spread seeds to ensure visual difference between variations
+                if base_seed is not None:
+                    seed = base_seed + (i * 1000)
+                else:
+                    seed = random.randint(0, 2**32 - 1)
 
                     print(
                         f"[GENERATING]: {generation_mode} variation {i + 1}/{num_images}, seed={seed}"
@@ -803,7 +813,11 @@ def handler(event):
                 )
                 positive_prompt = prompt_data["prompt"]
 
-                seed = base_seed if (i == 0 and base_seed is not None) else None
+                # Spread seeds to ensure visual difference between variations
+                if base_seed is not None:
+                    seed = base_seed + (i * 1000)
+                else:
+                    seed = random.randint(0, 2**32 - 1)
 
                 print(
                     f"Generating image {i + 1}/{num_images} with variation_index={actual_variation_index}: {prompt_data['variation']}"
@@ -836,7 +850,11 @@ def handler(event):
                 )
 
             for i in range(num_images):
-                seed = base_seed if (i == 0 and base_seed is not None) else None
+                # Spread seeds to ensure visual difference between variations
+                if base_seed is not None:
+                    seed = base_seed + (i * 1000)
+                else:
+                    seed = random.randint(0, 2**32 - 1)
                 print(f"Generating image {i + 1}/{num_images}...")
                 result = generate_single_image(
                     workflow, positive_prompt, negative_prompt, seed

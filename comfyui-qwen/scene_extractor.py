@@ -348,26 +348,27 @@ def build_prompt_from_extracted_scene(
 
     # Apply VARIATIONS for multiple images (different angles/compositions)
     # Only apply for text2img (different food type) - img2img preserves reference composition
+    # Using directive camera language for better model understanding
     standard_variations = [
         {
-            "angle": "overhead flat lay shot",
-            "focus": "entire dish centered",
-            "depth": "medium depth of field",
+            "angle": "CAMERA DIRECTLY ABOVE looking straight down, perfect overhead bird's eye view",
+            "focus": "entire dish centered in frame",
+            "depth": "sharp focus throughout all elements",
         },
         {
-            "angle": "45-degree angle from corner",
-            "focus": "front edge sharp",
-            "depth": "shallow depth of field",
+            "angle": "CAMERA AT 45 DEGREES looking down at dish from corner angle",
+            "focus": "front edge sharp with depth receding",
+            "depth": "shallow depth of field with soft bokeh background",
         },
         {
-            "angle": "low angle eye-level shot",
-            "focus": "hero side of dish",
-            "depth": "very shallow, background blur",
+            "angle": "CAMERA AT EYE LEVEL shooting horizontally across the dish",
+            "focus": "dramatic side profile view",
+            "depth": "shallow focus on nearest edge with background blur",
         },
         {
-            "angle": "close-up macro detail shot",
-            "focus": "texture and detail",
-            "depth": "ultra shallow depth",
+            "angle": "EXTREME CLOSE-UP MACRO filling frame with texture detail",
+            "focus": "texture and ingredient detail dominating frame",
+            "depth": "extremely shallow depth with tiny focal plane",
         },
     ]
 
@@ -395,8 +396,17 @@ def build_prompt_from_extracted_scene(
     mood = extracted_scene.get("mood", "")
     color_palette = extracted_scene.get("color_palette", "")
 
+    # Food-context prefix to bias model interpretation toward food photography
+    food_context = "professional food photography, food dish only, close-up of plated food"
+
     prompt_parts = [
-        # Subject first (Flux 2 best practice)
+        # Camera angle FIRST with emphasis markers for Qwen attention
+        # Triple parens = highest priority, double = high, single = medium
+        f"((({camera_angle})))" if camera_angle else "",
+        f"(({depth_of_field}))" if depth_of_field else "",
+        # Food context
+        food_context,
+        # Subject
         f"{item_name} with {item_description}",
         # Food state (only if same food type)
         food_state,
@@ -408,12 +418,8 @@ def build_prompt_from_extracted_scene(
         props,
         # Lighting setup
         lighting,
-        # Camera angle (varied per image)
-        camera_angle,
-        # Depth of field (varied per image)
-        depth_of_field,
         # Color palette
-        f"color palette of {color_palette}" if color_palette else "",
+        f"((color palette: {color_palette}))" if color_palette else "",
         # Mood/atmosphere
         mood,
         # Food-specific realism details

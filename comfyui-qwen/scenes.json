@@ -8,10 +8,10 @@
     "props": "scattered small fresh garnish with visible natural details and organic edges, rustic olive oil bottle nearby",
     "realism": "professional DSLR food photography, authentic handmade appearance with natural irregularities, matte organic textures not shiny or plastic, visible natural imperfections on herbs and ingredients, real food photography not CGI or 3D render",
     "variations": [
-      {"angle": "overhead flat lay shot", "focus": "entire dish centered", "depth": "sharp focus throughout"},
-      {"angle": "45-degree angle from corner", "focus": "front edge with depth", "depth": "shallow depth of field with bokeh"},
-      {"angle": "low angle eye-level shot", "focus": "dramatic side view", "depth": "shallow focus on nearest edge"},
-      {"angle": "close-up macro detail shot", "focus": "texture and ingredient detail", "depth": "extremely shallow depth of field"}
+      {"label": "Overhead", "angle": "CAMERA DIRECTLY ABOVE looking straight down, perfect overhead bird's eye view", "focus": "entire dish centered in frame", "depth": "sharp focus throughout all elements"},
+      {"label": "45° Angle", "angle": "CAMERA AT 45 DEGREES looking down at dish from corner angle", "focus": "front edge sharp with depth receding", "depth": "shallow depth of field with soft bokeh background"},
+      {"label": "Eye Level", "angle": "CAMERA AT EYE LEVEL shooting horizontally across the dish", "focus": "dramatic side profile view", "depth": "shallow focus on nearest edge with background blur"},
+      {"label": "Close-up", "angle": "EXTREME CLOSE-UP MACRO filling frame with texture detail", "focus": "texture and ingredient detail dominating frame", "depth": "extremely shallow depth with tiny focal plane"}
     ]
   },
   "modern_minimal": {
@@ -23,10 +23,10 @@
     "props": "minimal garnish with natural organic details, clean presentation",
     "realism": "professional DSLR food photography, authentic artisan food with matte organic textures, visible handmade irregularities, natural ingredient colors with realistic variations, not plastic shiny or CGI",
     "variations": [
-      {"angle": "perfect overhead flat lay shot", "focus": "geometric centered composition", "depth": "sharp focus clean lines"},
-      {"angle": "subtle 30-degree tilted angle", "focus": "asymmetric rule-of-thirds placement", "depth": "soft natural background fade"},
-      {"angle": "straight-on eye level perspective", "focus": "cross-section showing layers", "depth": "generous white space negative composition"},
-      {"angle": "elegant 45-degree corner angle", "focus": "partial view with artistic white space", "depth": "airy minimal composition"}
+      {"label": "Overhead", "angle": "CAMERA DIRECTLY ABOVE looking straight down, perfect geometric overhead", "focus": "geometric centered composition", "depth": "sharp focus with clean lines"},
+      {"label": "30° Angle", "angle": "CAMERA AT 30 DEGREES subtle tilt looking down", "focus": "asymmetric rule-of-thirds placement", "depth": "soft natural background fade"},
+      {"label": "Eye Level", "angle": "CAMERA AT EYE LEVEL shooting straight on horizontally", "focus": "cross-section showing layers", "depth": "generous white space negative composition"},
+      {"label": "45° Angle", "angle": "CAMERA AT 45 DEGREES from elegant corner angle", "focus": "partial view with artistic white space", "depth": "airy minimal composition"}
     ]
   },
   "cozy_homestyle": {
@@ -38,10 +38,10 @@
     "props": "cloth napkin, casual scattered crumbs, homey setting with natural elements",
     "realism": "professional DSLR food photography, homemade authentic appearance with natural imperfections, matte food textures not shiny or plastic, herbs with visible veins and slight wilting, genuine home-cooked realistic look",
     "variations": [
-      {"angle": "casual overhead shot", "focus": "whole dish slightly off-center natural placement", "depth": "lifestyle photography style"},
-      {"angle": "warm 45-degree family table view", "focus": "inviting serving perspective", "depth": "inviting depth"},
-      {"angle": "intimate close-up", "focus": "detailed view of textures", "depth": "shallow focus cozy feeling"},
-      {"angle": "wide establishing shot", "focus": "dish in context of homey table setting", "depth": "environmental storytelling"}
+      {"label": "Overhead", "angle": "CAMERA DIRECTLY ABOVE casual overhead looking down", "focus": "whole dish slightly off-center natural placement", "depth": "lifestyle photography style"},
+      {"label": "45° Angle", "angle": "CAMERA AT 45 DEGREES warm family table perspective", "focus": "inviting serving angle view", "depth": "inviting depth with soft background"},
+      {"label": "Close-up", "angle": "EXTREME CLOSE-UP MACRO intimate detail view", "focus": "detailed texture filling frame", "depth": "shallow focus cozy feeling"},
+      {"label": "Wide Shot", "angle": "CAMERA PULLED BACK wide establishing shot", "focus": "dish in context of homey table setting", "depth": "environmental storytelling depth"}
     ]
   },
   "premium_upscale": {
@@ -53,10 +53,10 @@
     "props": "a small amount of fresh microgreens garnish with visible organic details and natural imperfections, artisan presentation",
     "realism": "professional DSLR food photography, artisan handcrafted appearance with authentic textures, natural matte finish on ingredients, garnishes with visible leaf structure and organic imperfections, premium but genuinely real not CGI or artificial",
     "variations": [
-      {"angle": "dramatic low angle hero shot", "focus": "dish as hero against dark moody background", "depth": "chiaroscuro lighting style"},
-      {"angle": "artistic overhead with negative space", "focus": "artful minimalist plating", "depth": "editorial magazine composition"},
-      {"angle": "elegant 45-degree angle", "focus": "premium ingredients highlighted with natural textures", "depth": "luxury food photography style"},
-      {"angle": "extreme close-up detail shot", "focus": "texture of premium ingredients showing authenticity", "depth": "macro detail revealing real food texture"}
+      {"label": "Low Angle", "angle": "CAMERA LOW ANGLE looking up at dish as hero", "focus": "dish as hero against dark moody background", "depth": "chiaroscuro lighting style"},
+      {"label": "Overhead", "angle": "CAMERA DIRECTLY ABOVE artistic overhead with negative space", "focus": "artful minimalist plating centered", "depth": "editorial magazine composition"},
+      {"label": "45° Angle", "angle": "CAMERA AT 45 DEGREES elegant angle looking down", "focus": "premium ingredients highlighted with natural textures", "depth": "luxury food photography style"},
+      {"label": "Close-up", "angle": "EXTREME CLOSE-UP MACRO detail shot filling frame", "focus": "texture of premium ingredients showing authenticity", "depth": "macro detail revealing real food texture"}
     ]
   },
   "street_food": {
@@ -68,10 +68,10 @@
     "props": "kraft paper plates, casual rustic presentation, hints of busy environment",
     "realism": "professional DSLR food photography, authentic street food appearance with natural imperfections and organic textures, not polished or plastic looking, matte real food surfaces, genuine casual food photography",
     "variations": [
-      {"angle": "straight-on counter view", "focus": "dish on counter ready to serve", "depth": "urban environment context"},
-      {"angle": "overhead flat lay on kraft paper", "focus": "food centered on serving paper", "depth": "clean urban presentation"},
-      {"angle": "dynamic 45-degree angle", "focus": "fresh dish on metal surface", "depth": "energetic composition"},
-      {"angle": "close-up detail shot", "focus": "texture and toppings detail", "depth": "shallow depth highlighting ingredients"}
+      {"label": "Eye Level", "angle": "CAMERA AT EYE LEVEL straight-on counter view", "focus": "dish on counter ready to serve", "depth": "urban environment context visible"},
+      {"label": "Overhead", "angle": "CAMERA DIRECTLY ABOVE overhead flat lay on kraft paper", "focus": "food centered on serving paper", "depth": "clean urban presentation"},
+      {"label": "45° Angle", "angle": "CAMERA AT 45 DEGREES dynamic angle looking down", "focus": "fresh dish on metal surface", "depth": "energetic composition"},
+      {"label": "Close-up", "angle": "EXTREME CLOSE-UP MACRO detail shot", "focus": "texture and toppings detail filling frame", "depth": "shallow depth highlighting ingredients"}
     ]
   },
   "garden_fresh": {
@@ -83,10 +83,10 @@
     "props": "fresh tomatoes on vine with natural imperfections, living herbs with visible leaf veins and natural variations, scattered natural elements",
     "realism": "professional DSLR food photography, organic natural appearance with real food imperfections, authentic matte textures on leaves and vegetables with visible natural details and ingredients, not plastic or CGI, farm-fresh authentic photography",
     "variations": [
-      {"angle": "overhead spread shot", "focus": "dish surrounded by fresh natural elements", "depth": "recipe style photography"},
-      {"angle": "natural 45-degree garden table view", "focus": "outdoor dining setting", "depth": "farm-to-table narrative"},
-      {"angle": "close-up detail shot", "focus": "quality and natural textures", "depth": "hero shot"},
-      {"angle": "wide rustic spread", "focus": "abundance of fresh elements around dish", "depth": "harvest table composition"}
+      {"label": "Overhead", "angle": "CAMERA DIRECTLY ABOVE overhead spread shot looking down", "focus": "dish surrounded by fresh natural elements", "depth": "recipe style photography sharp throughout"},
+      {"label": "45° Angle", "angle": "CAMERA AT 45 DEGREES natural garden table view", "focus": "outdoor dining setting perspective", "depth": "farm-to-table narrative depth"},
+      {"label": "Close-up", "angle": "EXTREME CLOSE-UP MACRO detail shot", "focus": "quality and natural textures filling frame", "depth": "hero shot shallow focus"},
+      {"label": "Wide Shot", "angle": "CAMERA PULLED BACK wide rustic spread", "focus": "abundance of fresh elements around dish", "depth": "harvest table composition"}
     ]
   },
   "industrial_craft": {
@@ -98,10 +98,10 @@
     "props": "reclaimed metal accents, minimalist industrial presentation with natural elements",
     "realism": "professional DSLR food photography, authentic handmade textures, matte ingredient finish with organic imperfections, natural surface variations, not CGI or plastic",
     "variations": [
-      {"angle": "top-down workshop flat lay", "focus": "full dish with natural presentation", "depth": "sharp consistent focus"},
-      {"angle": "angled 35-degree prep-table view", "focus": "dish on serving surface", "depth": "shallow depth with subtle workshop blur"},
-      {"angle": "low industrial eye-level", "focus": "side view highlighting texture", "depth": "strong subject isolation"},
-      {"angle": "tight macro texture shot", "focus": "surface texture and ingredient detail", "depth": "extremely shallow macro depth"}
+      {"label": "Overhead", "angle": "CAMERA DIRECTLY ABOVE top-down workshop flat lay", "focus": "full dish with natural presentation centered", "depth": "sharp consistent focus throughout"},
+      {"label": "35° Angle", "angle": "CAMERA AT 35 DEGREES angled prep-table view", "focus": "dish on serving surface", "depth": "shallow depth with subtle workshop blur"},
+      {"label": "Eye Level", "angle": "CAMERA AT EYE LEVEL low industrial view shooting horizontally", "focus": "side view highlighting texture", "depth": "strong subject isolation"},
+      {"label": "Close-up", "angle": "EXTREME CLOSE-UP MACRO tight texture shot", "focus": "surface texture and ingredient detail", "depth": "extremely shallow macro depth"}
     ]
   },
   "pizza_mia": {
@@ -113,26 +113,10 @@
     "props": "glass parmesan and red pepper flake shakers with metal tops placed nearby",
     "realism": "professional DSLR food photography, authentic casual food photography, natural browning with realistic texture and oil sheen, garnishes with visible organic details, not overly polished or plastic, genuine outdoor dining look",
     "variations": [
-      {
-        "angle": "direct overhead flat lay",
-        "focus": "centered dish filling the frame",
-        "depth": "sharp edge-to-edge focus"
-      },
-      {
-        "angle": "high angle 60-degree view",
-        "focus": "center of dish with table texture background",
-        "depth": "slight depth falloff at table edges"
-      },
-      {
-        "angle": "close-up detail shot",
-        "focus": "texture and surface detail",
-        "depth": "shallow depth of field on surface"
-      },
-      {
-        "angle": "tilted playful composition",
-        "focus": "dish off-center with condiments prominent",
-        "depth": "balanced focus on foreground elements"
-      }
+      {"label": "Overhead", "angle": "CAMERA DIRECTLY ABOVE direct overhead flat lay looking straight down", "focus": "centered dish filling the frame", "depth": "sharp edge-to-edge focus"},
+      {"label": "60° Angle", "angle": "CAMERA AT 60 DEGREES high angle looking down", "focus": "center of dish with table texture background", "depth": "slight depth falloff at table edges"},
+      {"label": "Close-up", "angle": "EXTREME CLOSE-UP MACRO detail shot", "focus": "texture and surface detail filling frame", "depth": "shallow depth of field on surface"},
+      {"label": "45° Angle", "angle": "CAMERA AT 45 DEGREES tilted playful composition", "focus": "dish off-center with condiments prominent", "depth": "balanced focus on foreground elements"}
     ]
   }
 }

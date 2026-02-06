@@ -333,9 +333,9 @@ def build_prompt_from_extracted_scene(
         # 2. Food anchor - item_name IS the anchor (prevents style bleed)
         "professional food photography",
         f"(({item_name}))",
-        # 3. Description + universal distribution
-        f"with {item_description}",
-        "ingredients arranged and distributed naturally across the dish as a professional chef would plate, evenly balanced and overlapping organically, not placed in separate literal piles or clusters",
+        # 3. Description de-emphasized so dish name drives the visual, ingredients refine
+        f"[{item_description}]",
+        "each ingredient prepared and cut in the form appropriate for this specific dish as a professional chef would serve it, ingredients arranged and distributed naturally across the dish, evenly balanced and overlapping organically, not placed in separate literal piles or clusters, no whole uncut pieces unless that is how the dish is traditionally served",
         # 4. Scene elements (style isolated from food identity)
         f"on {surface}" if surface else "",
         background,

@@ -46,6 +46,7 @@ DIFFUSION_PATH = f"{COMFYUI_PATH}/models/diffusion_models"
 VAE_PATH = f"{COMFYUI_PATH}/models/vae"
 TEXT_ENCODER_PATH = f"{COMFYUI_PATH}/models/text_encoders"
 
+
 def ensure_models_downloaded():
     """Download Qwen-Image-2512 official safetensors models using huggingface_hub"""
     diffusion_file = f"{DIFFUSION_PATH}/qwen_image_2512_fp8_e4m3fn.safetensors"
@@ -143,8 +144,8 @@ def save_reference_for_workflow(image_base64: str, max_size: int = 1024) -> str:
         print(f"Resized reference image from {original_size} to {img.size}")
 
     # Convert to RGB if needed (handles RGBA, palette modes)
-    if img.mode not in ('RGB', 'L'):
-        img = img.convert('RGB')
+    if img.mode not in ("RGB", "L"):
+        img = img.convert("RGB")
 
     img.save(ref_path, "PNG")
     file_size = os.path.getsize(ref_path)
@@ -253,19 +254,24 @@ def build_scene_prompt(
     if variations:
         variation = variations[variation_index % len(variations)]
     else:
-        variation = {"label": "Overhead", "angle": "overhead", "focus": "centered", "depth": "sharp focus"}
+        variation = {
+            "label": "Overhead",
+            "angle": "overhead",
+            "focus": "centered",
+            "depth": "sharp focus",
+        }
 
     # Universal hierarchical prompt structure
     prompt_parts = [
         # 1. Camera directive (triple emphasis = highest priority for Qwen)
-        f"((({variation.get('angle', '')})))" if variation.get('angle') else "",
-        f"(({variation.get('focus', '')}))" if variation.get('focus') else "",
-        f"({variation.get('depth', '')})" if variation.get('depth') else "",
+        f"((({variation.get('angle', '')})))" if variation.get("angle") else "",
+        f"(({variation.get('focus', '')}))" if variation.get("focus") else "",
+        f"({variation.get('depth', '')})" if variation.get("depth") else "",
         # 2. Food anchor - item_name IS the anchor, no category mapping needed
         "professional food photography",
         f"(({item_name}))",
-        # 3. Description + universal distribution
-        f"with {item_description}",
+        # 3. Description de-emphasized so dish name drives the visual, ingredients refine
+        f"[{item_description}]",
         template.get("distribution", ""),
         # 4. Scene elements (style isolated from food identity)
         scene.get(
@@ -303,7 +309,7 @@ def build_prompt(
         # Food anchor first - item_name is the primary subject
         "professional food photography",
         f"(({item_name}))",
-        f"with {item_description}",
+        f"[{item_description}]",
         template.get("distribution", ""),
         template.get("suffix", ""),
         template.get("background", ""),
@@ -557,9 +563,7 @@ def handler(event):
 
         print(f"[CONDITION CHECK] reference_image truthy: {bool(reference_image)}")
         print(f"[CONDITION CHECK] extract_scene truthy: {bool(extract_scene)}")
-        print(
-            f"[CONDITION CHECK] Will enter reference mode: {bool(reference_image)}"
-        )
+        print(f"[CONDITION CHECK] Will enter reference mode: {bool(reference_image)}")
 
         # SIMPLE IMG2IMG MODE (reference image without GPT extraction)
         if reference_image and not extract_scene:
@@ -589,8 +593,15 @@ def handler(event):
                     positive_prompt = prompt_data["prompt"]
                     variation = prompt_data["variation"]
                 else:
-                    positive_prompt = build_prompt(item_name, item_description, item_type, templates)
-                    variation = {"label": "Default", "angle": "default", "focus": "centered", "depth": "sharp"}
+                    positive_prompt = build_prompt(
+                        item_name, item_description, item_type, templates
+                    )
+                    variation = {
+                        "label": "Default",
+                        "angle": "default",
+                        "focus": "centered",
+                        "depth": "sharp",
+                    }
 
                 # Spread seeds to ensure visual difference between variations
                 if base_seed is not None:
@@ -615,7 +626,9 @@ def handler(event):
             response = {
                 "images": results,
                 "scene": scene,
-                "scene_name": load_scenes().get(scene, {}).get("name", scene) if scene else "Custom",
+                "scene_name": load_scenes().get(scene, {}).get("name", scene)
+                if scene
+                else "Custom",
                 "item_type": item_type or detect_item_type(item_name, item_description),
                 "num_images": num_images,
                 "denoise": denoise,
@@ -624,7 +637,9 @@ def handler(event):
                 "model": "qwen-image-2512-Q8",
             }
             response["available_scenes"] = get_available_scenes()
-            print(f"Generated {num_images} image(s) successfully via simple img2img mode")
+            print(
+                f"Generated {num_images} image(s) successfully via simple img2img mode"
+            )
             return response
 
         # REFERENCE IMAGE MODE WITH GPT EXTRACTION
@@ -651,21 +666,21 @@ def handler(event):
                 print(
                     f"[EXTRACTED SCENE NAME]: {extracted_scene.get('name', 'Unknown')}"
                 )
-                print(f"[EXTRACTED SCENE FULL]:")
+                print("[EXTRACTED SCENE FULL]:")
                 for key, value in extracted_scene.items():
                     print(f"  - {key}: {value}")
 
                 use_img2img = job_input.get("use_img2img", True)
 
-                print(f"\n[STEP 2] Generation mode:")
-                print(f"  Reference food: {extracted_scene.get('detected_food_type', 'unknown')}")
+                print("\n[STEP 2] Generation mode:")
+                print(
+                    f"  Reference food: {extracted_scene.get('detected_food_type', 'unknown')}"
+                )
                 print(f"  Target item: {item_name}")
                 print(f"  Use img2img (preserve shape): {use_img2img}")
 
                 if use_img2img:
-                    print(
-                        "\n[STEP 3] Using IMG2IMG workflow (preserving composition)"
-                    )
+                    print("\n[STEP 3] Using IMG2IMG workflow (preserving composition)")
                     ref_path = save_reference_for_workflow(reference_image)
                     print(f"[REFERENCE SAVED TO]: {ref_path}")
 
@@ -859,6 +874,7 @@ def handler(event):
         print(f"TIMEOUT ERROR: {str(e)}")
         print("Worker will exit to allow fresh restart...")
         import traceback
+
         traceback.print_exc()
         # Exit the worker so RunPod spins up a fresh one
         sys.exit(1)
@@ -866,6 +882,7 @@ def handler(event):
     except Exception as e:
         print(f"Error: {str(e)}")
         import traceback
+
         traceback.print_exc()
         return {"error": str(e), "status": "failed"}
 

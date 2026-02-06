@@ -213,10 +213,33 @@ def get_available_scenes():
     return list(scenes.keys())
 
 
+def get_template():
+    """Get the universal default template from templates.json."""
+    templates = load_templates()
+    return templates.get("default", {})
+
+
+def detect_item_type(item_name: str, item_description: str = "") -> str:
+    """Return the item name as the type identifier.
+
+    Prompt construction is fully universal and does not depend on categorization.
+    This exists only for API response metadata compatibility.
+    """
+    return item_name.lower().strip()
+
+
 def build_scene_prompt(
     item_name: str, item_description: str, scene_id: str, variation_index: int = 0
 ) -> dict:
-    """Build a prompt using scene configuration with specific variation."""
+    """Build a prompt using universal hierarchical structure with scene configuration.
+
+    Hierarchy (research-backed for preventing style bleed):
+    1. Camera directive (highest emphasis) - anchors the composition
+    2. Food anchor (item_name as primary subject) - prevents category confusion
+    3. Description + distribution - natural ingredient presentation
+    4. Scene elements - background, lighting, mood, props
+    5. Orientation + quality - gravity, realism, photography specs
+    """
     scenes = load_scenes()
 
     if scene_id not in scenes:
@@ -224,24 +247,27 @@ def build_scene_prompt(
         scene_id = "rustic_italian"
 
     scene = scenes[scene_id]
+    template = get_template()
     variations = scene.get("variations", [])
 
     if variations:
         variation = variations[variation_index % len(variations)]
     else:
-        variation = {"angle": "overhead", "focus": "centered", "depth": "sharp focus"}
+        variation = {"label": "Overhead", "angle": "overhead", "focus": "centered", "depth": "sharp focus"}
 
-    # Food-context prefix to bias model interpretation toward food photography
-    food_context = "professional food photography, food dish only, close-up of plated food"
-
-    # CHANGED: Camera angle FIRST with emphasis markers for Qwen attention
-    # Triple parens = highest priority, double = high, single = medium
+    # Universal hierarchical prompt structure
     prompt_parts = [
+        # 1. Camera directive (triple emphasis = highest priority for Qwen)
         f"((({variation.get('angle', '')})))" if variation.get('angle') else "",
         f"(({variation.get('focus', '')}))" if variation.get('focus') else "",
         f"({variation.get('depth', '')})" if variation.get('depth') else "",
-        food_context,
-        f"{item_name} with {item_description}",
+        # 2. Food anchor - item_name IS the anchor, no category mapping needed
+        "professional food photography",
+        f"(({item_name}))",
+        # 3. Description + universal distribution
+        f"with {item_description}",
+        template.get("distribution", ""),
+        # 4. Scene elements (style isolated from food identity)
         scene.get(
             "realism",
             "authentic handmade appearance with natural imperfections, real food texture not CGI or plastic",
@@ -250,6 +276,9 @@ def build_scene_prompt(
         scene.get("lighting", ""),
         scene.get("mood", ""),
         scene.get("props", ""),
+        # 5. Orientation + quality
+        "dish right-side up on table with correct gravity and natural orientation",
+        template.get("suffix", ""),
         "editorial food photography, high resolution, appetizing, shot on Canon 5D Mark IV",
     ]
 
@@ -264,71 +293,23 @@ def build_scene_prompt(
     }
 
 
-def detect_item_type(item_name: str, item_description: str) -> str:
-    """Auto-detect the food category based on item name/description."""
-    text = f"{item_name} {item_description}".lower()
-
-    if any(word in text for word in ["pizza", "margherita", "pepperoni", "calzone"]):
-        return "pizza"
-    elif any(
-        word in text
-        for word in ["pasta", "spaghetti", "penne", "fettuccine", "lasagna", "ravioli"]
-    ):
-        return "pasta"
-    elif any(word in text for word in ["salad", "greens", "caesar", "arugula"]):
-        return "salad"
-    elif any(
-        word in text
-        for word in [
-            "cake",
-            "cookie",
-            "brownie",
-            "tiramisu",
-            "gelato",
-            "ice cream",
-            "dessert",
-            "cannoli",
-        ]
-    ):
-        return "dessert"
-    elif any(word in text for word in ["sandwich", "sub", "panini", "wrap", "burger"]):
-        return "sandwich"
-    elif any(
-        word in text
-        for word in ["wings", "breadsticks", "appetizer", "bruschetta", "garlic bread"]
-    ):
-        return "appetizer"
-    elif any(
-        word in text
-        for word in ["soda", "drink", "beer", "wine", "coffee", "tea", "smoothie"]
-    ):
-        return "drink"
-    else:
-        return "default"
-
-
 def build_prompt(
     item_name: str, item_description: str, item_type: str = None, templates: dict = None
 ) -> str:
-    """Build a complete prompt using templates with food-context prefix."""
-    if templates is None:
-        templates = load_templates()
-
-    if item_type is None:
-        item_type = detect_item_type(item_name, item_description)
-
-    template = templates.get(item_type, templates.get("default", {}))
-
-    # Food-context prefix to bias model interpretation toward food photography
-    food_context = "professional food photography, food dish only, close-up of plated food"
+    """Build a complete prompt using the universal hierarchical structure."""
+    template = get_template()
 
     parts = [
-        food_context,
-        f"{item_name} with {item_description}",
+        # Food anchor first - item_name is the primary subject
+        "professional food photography",
+        f"(({item_name}))",
+        f"with {item_description}",
+        template.get("distribution", ""),
         template.get("suffix", ""),
         template.get("background", ""),
         template.get("lighting", ""),
         template.get("camera", ""),
+        "dish right-side up on table with correct gravity and natural orientation",
         "inviting and delicious mood",
     ]
 
@@ -609,7 +590,7 @@ def handler(event):
                     variation = prompt_data["variation"]
                 else:
                     positive_prompt = build_prompt(item_name, item_description, item_type, templates)
-                    variation = {"angle": "default", "focus": "centered", "depth": "sharp"}
+                    variation = {"label": "Default", "angle": "default", "focus": "centered", "depth": "sharp"}
 
                 # Spread seeds to ensure visual difference between variations
                 if base_seed is not None:
@@ -674,16 +655,11 @@ def handler(event):
                 for key, value in extracted_scene.items():
                     print(f"  - {key}: {value}")
 
-                ref_food_type = extracted_scene.get("detected_food_type", "pizza")
-                target_food_type = item_type or detect_item_type(
-                    item_name, item_description
-                )
-
                 use_img2img = job_input.get("use_img2img", True)
 
-                print(f"\n[STEP 2] Food type detection:")
-                print(f"  Reference food type: {ref_food_type}")
-                print(f"  Target food type: {target_food_type}")
+                print(f"\n[STEP 2] Generation mode:")
+                print(f"  Reference food: {extracted_scene.get('detected_food_type', 'unknown')}")
+                print(f"  Target item: {item_name}")
                 print(f"  Use img2img (preserve shape): {use_img2img}")
 
                 if use_img2img:
@@ -725,7 +701,6 @@ def handler(event):
                         item_description,
                         extracted_scene,
                         actual_variation_index,
-                        target_food_type=target_food_type,
                         apply_angle_variations=apply_variations,
                     )
                     positive_prompt = prompt_data["prompt"]
@@ -733,10 +708,10 @@ def handler(event):
                     print(f"[FULL PROMPT]: {positive_prompt}")
 
                     # Spread seeds to ensure visual difference between variations
-                if base_seed is not None:
-                    seed = base_seed + (i * 1000)
-                else:
-                    seed = random.randint(0, 2**32 - 1)
+                    if base_seed is not None:
+                        seed = base_seed + (i * 1000)
+                    else:
+                        seed = random.randint(0, 2**32 - 1)
 
                     print(
                         f"[GENERATING]: {generation_mode} variation {i + 1}/{num_images}, seed={seed}"

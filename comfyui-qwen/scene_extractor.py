@@ -258,114 +258,45 @@ def get_default_extracted_scene() -> Dict:
     }
 
 
-def get_food_realism(food_type: str) -> str:
-    """
-    Get food-type-specific realism descriptors.
-    This ensures pasta looks like pasta, not pizza with pasta on top!
-    """
-    realism_by_type = {
-        "pizza": "authentic handmade pizza appearance with natural irregularities, slightly uneven cheese melt, charred crust spots, real food texture not CGI or plastic, matte finish on ingredients, organic imperfections",
-        "pasta": "authentic Italian pasta texture, al dente appearance, creamy sauce coating each strand naturally, real parmesan shavings, genuine steam rising, matte food textures not plastic, organic imperfections in sauce distribution",
-        "salad": "fresh crisp vegetables with natural water droplets, authentic leaf textures with natural imperfections, real dressing pooling naturally, organic colors, matte vegetable surfaces not waxy or plastic",
-        "burger": "authentic grilled patty with natural char marks, real melted cheese dripping naturally, fresh crisp lettuce with natural edges, genuine sesame seed bun texture, juicy appearance with natural imperfections",
-        "sandwich": "authentic fresh bread texture with natural crumb structure, real layered fillings visible, genuine spread application, natural ingredient colors, matte surfaces not plastic or CGI",
-        "dessert": "authentic pastry textures with natural imperfections, real cream with organic swirls, genuine fruit with natural blemishes, authentic powdered sugar dusting, not plastic or artificially perfect",
-        "soup": "authentic steaming liquid with natural surface texture, real ingredient pieces floating naturally, genuine broth with organic color variations, natural steam rising, not CGI or plastic looking",
-        "appetizer": "authentic artisan preparation with natural imperfections, real garnish placement with organic arrangement, genuine sauce drizzles with natural pooling, matte food textures",
-    }
-
-    # Default realism for unknown food types
-    default_realism = "authentic food texture with natural imperfections, real ingredients not CGI or plastic, matte surfaces with organic color variations, genuine homemade appearance"
-
-    return realism_by_type.get(food_type.lower(), default_realism)
-
-
 def build_prompt_from_extracted_scene(
     item_name: str,
     item_description: str,
     extracted_scene: Dict,
     variation_index: int = 0,
-    target_food_type: str = None,
     apply_angle_variations: bool = True,
+    **kwargs,
 ) -> Dict:
+    """Build a generation prompt using extracted scene config with universal hierarchy.
+
+    Uses the same hierarchy as the main handler to prevent style bleed:
+    1. Camera directive (highest emphasis)
+    2. Food anchor (item_name as primary subject)
+    3. Description + universal distribution
+    4. Scene elements (isolated from food identity)
+    5. Orientation + quality
     """
-    Build a DETAILED generation prompt using extracted scene config.
-
-    Args:
-        item_name: Name of the food item to generate
-        item_description: Description/ingredients
-        extracted_scene: Scene config from extract_scene_from_image()
-        variation_index: Which variation to use (0-3)
-        target_food_type: Type of food being generated (pizza, pasta, etc.)
-
-    Returns:
-        {
-            "prompt": "full prompt string",
-            "variation": {...}
-        }
-    """
-    # Detect target food type if not provided
-    if not target_food_type:
-        item_lower = item_name.lower()
-        if "pizza" in item_lower or "flatbread" in item_lower:
-            target_food_type = "pizza"
-        elif (
-            "pasta" in item_lower
-            or "spaghetti" in item_lower
-            or "penne" in item_lower
-            or "carbonara" in item_lower
-            or "lasagna" in item_lower
-        ):
-            target_food_type = "pasta"
-        elif "salad" in item_lower:
-            target_food_type = "salad"
-        elif "burger" in item_lower:
-            target_food_type = "burger"
-        elif "sandwich" in item_lower or "sub" in item_lower or "wrap" in item_lower:
-            target_food_type = "sandwich"
-        elif (
-            "cake" in item_lower
-            or "pie" in item_lower
-            or "dessert" in item_lower
-            or "tiramisu" in item_lower
-        ):
-            target_food_type = "dessert"
-        elif "soup" in item_lower or "stew" in item_lower:
-            target_food_type = "soup"
-        else:
-            target_food_type = "appetizer"  # Generic fallback
-
-    # Get food-appropriate realism (pasta shouldn't have "charred crust" etc.)
-    food_realism = get_food_realism(target_food_type)
-
-    # Adapt food_state if generating different food type than reference
-    ref_food_type = extracted_scene.get("detected_food_type", "pizza")
-    food_state = extracted_scene.get("food_state", "")
-
-    # Don't use pizza-specific food_state for non-pizza items
-    if target_food_type != "pizza" and ref_food_type == "pizza":
-        food_state = ""  # Clear pizza-specific states like "slice lifted"
-
-    # Apply VARIATIONS for multiple images (different angles/compositions)
-    # Only apply for text2img (different food type) - img2img preserves reference composition
-    # Using directive camera language for better model understanding
+    # Standard angle variations for multi-image generation
     standard_variations = [
         {
+            "label": "Overhead",
             "angle": "CAMERA DIRECTLY ABOVE looking straight down, perfect overhead bird's eye view",
             "focus": "entire dish centered in frame",
             "depth": "sharp focus throughout all elements",
         },
         {
+            "label": "45° Angle",
             "angle": "CAMERA AT 45 DEGREES looking down at dish from corner angle",
             "focus": "front edge sharp with depth receding",
             "depth": "shallow depth of field with soft bokeh background",
         },
         {
+            "label": "Eye Level",
             "angle": "CAMERA AT EYE LEVEL shooting horizontally across the dish",
             "focus": "dramatic side profile view",
             "depth": "shallow focus on nearest edge with background blur",
         },
         {
+            "label": "Close-up",
             "angle": "EXTREME CLOSE-UP MACRO filling frame with texture detail",
             "focus": "texture and ingredient detail dominating frame",
             "depth": "extremely shallow depth with tiny focal plane",
@@ -373,13 +304,12 @@ def build_prompt_from_extracted_scene(
     ]
 
     if apply_angle_variations:
-        # text2img mode: Apply different angles for each image
         variation = standard_variations[variation_index % len(standard_variations)]
         camera_angle = variation["angle"]
         depth_of_field = variation["depth"]
     else:
-        # img2img mode: Use extracted scene's angle (preserve reference composition)
         variation = {
+            "label": "Reference",
             "angle": "from reference",
             "focus": "from reference",
             "depth": "from reference",
@@ -387,57 +317,45 @@ def build_prompt_from_extracted_scene(
         camera_angle = extracted_scene.get("camera_angle", "")
         depth_of_field = extracted_scene.get("depth_of_field", "")
 
-    # Scene details are now extracted as food-agnostic by GPT-5.1
-    # No brittle string replacements needed - the LLM does the smart work
-    surface = extracted_scene.get("surface_object", "rustic wooden serving board")
+    # Scene details extracted as food-agnostic by GPT/Claude
+    surface = extracted_scene.get("surface_object", "")
     props = extracted_scene.get("props", "")
     background = extracted_scene.get("background", "")
     lighting = extracted_scene.get("lighting", "")
     mood = extracted_scene.get("mood", "")
     color_palette = extracted_scene.get("color_palette", "")
 
-    # Food-context prefix to bias model interpretation toward food photography
-    food_context = "professional food photography, food dish only, close-up of plated food"
-
+    # Universal prompt hierarchy (same structure as handler's build_scene_prompt)
     prompt_parts = [
-        # Camera angle FIRST with emphasis markers for Qwen attention
-        # Triple parens = highest priority, double = high, single = medium
+        # 1. Camera directive (triple emphasis = highest priority for Qwen)
         f"((({camera_angle})))" if camera_angle else "",
         f"(({depth_of_field}))" if depth_of_field else "",
-        # Food context
-        food_context,
-        # Subject
-        f"{item_name} with {item_description}",
-        # Food state (only if same food type)
-        food_state,
-        # Surface/serving object (food-agnostic from GPT-5.1)
+        # 2. Food anchor - item_name IS the anchor (prevents style bleed)
+        "professional food photography",
+        f"(({item_name}))",
+        # 3. Description + universal distribution
+        f"with {item_description}",
+        "ingredients arranged and distributed naturally across the dish as a professional chef would plate, evenly balanced and overlapping organically, not placed in separate literal piles or clusters",
+        # 4. Scene elements (style isolated from food identity)
         f"on {surface}" if surface else "",
-        # Background
         background,
-        # Props (food-agnostic)
         props,
-        # Lighting setup
         lighting,
-        # Color palette
-        f"((color palette: {color_palette}))" if color_palette else "",
-        # Mood/atmosphere
+        f"color palette: {color_palette}" if color_palette else "",
         mood,
-        # Food-specific realism details
-        food_realism,
-        # Photography quality
+        # 5. Orientation + realism + quality
+        "dish right-side up on table with correct gravity and natural orientation",
+        "authentic food texture with natural imperfections, real ingredients not CGI or plastic, matte surfaces with organic color variations",
         "professional editorial food photography, high resolution, appetizing presentation",
     ]
 
-    # Filter empty parts and join
     full_prompt = ", ".join(part for part in prompt_parts if part and part.strip())
 
     return {
         "prompt": full_prompt,
         "scene_name": extracted_scene.get("name", "Custom Style"),
         "variation_index": variation_index,
-        "variation": variation,  # Include variation details
-        "camera_angle": camera_angle,  # Use variation angle, not extracted
+        "variation": variation,
+        "camera_angle": camera_angle,
         "extracted_scene": extracted_scene,
-        "target_food_type": target_food_type,
-        "food_realism": food_realism,
     }

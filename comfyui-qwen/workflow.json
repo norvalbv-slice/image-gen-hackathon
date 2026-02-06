@@ -40,7 +40,7 @@
   },
   "7": {
     "inputs": {
-      "text": "((person)), ((people)), ((human)), ((baby)), ((child)), ((infant)), ((toddler)), ((hands)), ((fingers)), ((face)), ((body)), ((portrait)), ((figure)), man, woman, boy, girl, arm, leg, skin, illustration, drawing, cartoon, CGI, 3D render, plastic, artificial, blurry, low quality, digital art, anime, painting, vignette, high contrast, color grading, text, watermark, logo",
+      "text": "((person)), ((people)), ((human)), ((baby)), ((child)), ((infant)), ((toddler)), ((hands)), ((fingers)), ((face)), ((body)), ((portrait)), ((figure)), man, woman, boy, girl, arm, leg, skin, ((upside down)), ((inverted)), ((flipped)), ((sideways food)), ((floating food)), ((defying gravity)), ((food falling)), uniform perfectly spaced artificial arrangement, ingredients in separate literal piles, illustration, drawing, cartoon, CGI, 3D render, plastic, artificial, blurry, low quality, digital art, anime, painting, vignette, high contrast, color grading, text, watermark, logo",
       "clip": ["4", 0]
     },
     "class_type": "CLIPTextEncode",
